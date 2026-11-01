@@ -1,0 +1,240 @@
+workflows:
+  android-debug:
+    name: Android Debug APK Build
+    max_build_duration: 30
+    instance_type: mac_mini_m1
+    # Java 21を使用するように明示的に指定してビルドエラーを回避します
+    environment:
+      java: 21
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+    scripts:
+      - name: Install Node Packages
+        script: |
+          npm install
+      - name: Sync Capacitor Android Config
+        script: |
+          mkdir -p out
+          echo "<html><body>HOMEBASE WebView App</body></html>" > out/index.html
+          npx cap sync android
+      - name: Build Debug APK
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/apk/debug/*.apk
+
+  # ビルドのみ。mainへのpushで毎回自動実行し、コンパイルエラーを早期発見する。
+  # Play Storeへは配信しない（実害なし・安全）。
+  android-release-build:
+    name: Android Release AAB Build (ビルドのみ・自動)
+    max_build_duration: 30
+    instance_type: mac_mini_m1
+    environment:
+      java: 21
+      groups:
+        # Codemagicダッシュボード側で作成する環境変数グループ。
+        # このグループに以下を「Secret」として登録すること:
+        #   CM_KEYSTORE            : キーストアファイル(.jks)をbase64エンコードした文字列
+        #   CM_KEYSTORE_PASSWORD   : キーストアのパスワード
+        #   CM_KEY_ALIAS           : キーのエイリアス
+        #   CM_KEY_PASSWORD        : キーのパスワード
+        - google_play_signing
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+    scripts:
+      - name: Install Node Packages
+        script: |
+          npm install
+      - name: Sync Capacitor Android Config
+        script: |
+          mkdir -p out
+          echo "<html><body>HOMEBASE WebView App</body></html>" > out/index.html
+          npx cap sync android
+      - name: Decode keystore
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > $CM_BUILD_DIR/homebase-release.jks
+          echo "CM_KEYSTORE_PATH=$CM_BUILD_DIR/homebase-release.jks" >> $CM_ENV
+      - name: Compute version code from git history
+        script: |
+          echo "CM_VERSION_CODE=$(git rev-list --count HEAD)" >> $CM_ENV
+      - name: Build Release AAB
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+
+  # Play Storeへの実配信。「vX.Y.Z」形式のgitタグをpushした時だけ発火する
+  # （例: git tag v1.0.2 && git push origin v1.0.2）。
+  # 「これでいく」と明確に決めた時だけ実行される、意図的なトリガー。
+  android-release-publish:
+    name: Android Release Publish (Google Play内部テストへ自動アップロード・タグpush時のみ)
+    max_build_duration: 30
+    instance_type: mac_mini_m1
+    environment:
+      java: 21
+      groups:
+        - google_play_signing
+        # 別グループ。以下を「Secret」として登録すること:
+        #   GCLOUD_SERVICE_ACCOUNT_CREDENTIALS : Google CloudサービスアカウントのJSONキー(中身をそのまま貼り付け)
+        - google_play_publishing
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+    scripts:
+      - name: Install Node Packages
+        script: |
+          npm install
+      - name: Sync Capacitor Android Config
+        script: |
+          mkdir -p out
+          echo "<html><body>HOMEBASE WebView App</body></html>" > out/index.html
+          npx cap sync android
+      - name: Decode keystore
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > $CM_BUILD_DIR/homebase-release.jks
+          echo "CM_KEYSTORE_PATH=$CM_BUILD_DIR/homebase-release.jks" >> $CM_ENV
+      - name: Compute version code from git history
+        script: |
+          echo "CM_VERSION_CODE=$(git rev-list --count HEAD)" >> $CM_ENV
+      - name: Build Release AAB
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: false
+
+  # ビルドのみ。mainへのpushで毎回自動実行し、署名まわりの設定ミスやコンパイルエラーを早期発見する。
+  # TestFlightへは配信しない（実害なし・安全）。
+  ios-release-build:
+    name: iOS Release Build (ビルドのみ・自動)
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: HOMEBASE Codemagic Admin
+    environment:
+      groups:
+        # CERTIFICATE_PRIVATE_KEY: iOS配布証明書用に一度だけ生成し使い回すRSA秘密鍵(Secret)
+        - ios_signing
+      xcode: latest
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+    scripts:
+      - name: Install Node Packages
+        script: |
+          npm install
+      - name: Sync Capacitor iOS Config
+        script: |
+          mkdir -p out
+          echo "<html><body>HOMEBASE WebView App</body></html>" > out/index.html
+          npx cap sync ios
+      - name: Use system default keychain
+        script: |
+          keychain initialize
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "com.easystance.homebase" \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa --project "ios/App/App.xcodeproj" --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+  # TestFlightへの実配信。「vX.Y.Z」形式のgitタグをpushした時だけ発火する
+  # （例: git tag v1.0.2 && git push origin v1.0.2）。
+  # 「これでいく」と明確に決めた時だけ実行される、意図的なトリガー。
+  ios-release-publish:
+    name: iOS Release Publish (TestFlightへ自動アップロード・タグpush時のみ)
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: HOMEBASE Codemagic Admin
+    environment:
+      groups:
+        # CERTIFICATE_PRIVATE_KEY: iOS配布証明書用に一度だけ生成し使い回すRSA秘密鍵(Secret)
+        - ios_signing
+      xcode: latest
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+    scripts:
+      - name: Install Node Packages
+        script: |
+          npm install
+      - name: Sync Capacitor iOS Config
+        script: |
+          mkdir -p out
+          echo "<html><body>HOMEBASE WebView App</body></html>" > out/index.html
+          npx cap sync ios
+      - name: Use system default keychain
+        script: |
+          keychain initialize
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "com.easystance.homebase" \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          cd $CM_BUILD_DIR/ios/App
+          # get-latest-app-store-build-number / get-latest-build-number は3回連続(v1.0.4/1.0.6/1.0.8)で
+          # 実際にTestFlightへアップロード済みの番号を見落として衝突を繰り返した(2026-08-30)。
+          # これ以上このAPIを信用せず、Apple側の状態と無関係に単調増加するUnixタイムスタンプを
+          # ビルド番号として使う(衝突しようがない)。CFBundleVersionは単一の整数として許容される。
+          # (2026-08-30追記: v1.0.9でもなお「11」で衝突したのは、プロジェクトにVERSIONING_SYSTEMが
+          # 設定されておらずagvtoolが実質何もしていなかったのが真因だった。設定を追加済み。
+          # このechoは次に同じ事故が起きないよう、実際に反映された値を必ずログに残すためのもの)
+          NEW_BUILD_NUMBER=$(date +%s)
+          agvtool new-version -all "$NEW_BUILD_NUMBER"
+          echo "New build number set to: $NEW_BUILD_NUMBER"
+          echo "Verifying via agvtool what-version:"
+          agvtool what-version
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa --project "ios/App/App.xcodeproj" --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

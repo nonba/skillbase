@@ -1,0 +1,797 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  // Cloudflare D1 (SQLite)。実行時の接続は PrismaClient に D1 アダプタを渡して行う。
+  // url はローカルD1（.wrangler/state/v3/d1）のSQLiteファイルを直接指す。
+  provider = "sqlite"
+  url      = "file:../.wrangler/state/v3/d1/miniflare-D1DatabaseObject/795eb30cbef24b6b154c3aaf80e32701d2f262654ce534106d8077ed79010459.sqlite"
+}
+
+generator client {
+  // OpenNext公式手順: output は指定しない（OpenNextが生成クライアントをWorkers用にパッチする）。
+  // Prisma 6 では driver adapters は preview 機能なので有効化が必要。
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String
+  password      String
+  role          String   @default("PLAYER") // "MANAGER" or "PLAYER" or "PARENT"
+
+  emailVerifiedAt        DateTime?
+  emailVerificationToken String?
+  
+  // システム権限フラグ（サブ管理者機能）
+  isOwner           Boolean  @default(false)
+  canManageSchedule Boolean  @default(false)
+  canManageUsers    Boolean  @default(false)
+  canManagePosts    Boolean  @default(false)
+  canManageScore    Boolean  @default(false)
+
+  // 初回パスワード変更必須フラグ
+  requiresPasswordChange Boolean @default(true)
+
+  // 選手プロフィール情報
+  jerseyNumber  String?  // 背番号
+  position      String?  // ポジション
+  battingHand   String?  // 右打/左打/両打
+  throwingHand  String?  // 右投/左投
+  grade         Int?     // 学年。0=体験生, 1..6=学年（接頭辞[小/中/高]はTeam.categoryから決まる）
+  graduated     Boolean  @default(false)
+
+  // 保護者プロフィール情報
+  parentRelation String? // "FATHER"|"MOTHER"|"OTHER"
+
+  // 団員リスト用の情報
+  nameKana         String?
+  schoolName       String?
+  birthDate        DateTime?
+  guardianName     String?
+  guardianRelation String?
+  guardianPhone    String?
+  guardianEmail    String?
+  homeAddress      String?
+  healthNotes      String?
+
+  // リレーション
+  teamId        String?
+  team          Team?    @relation(fields: [teamId], references: [id])
+  
+  attendances   Attendance[]
+  batterStats   BatterStats[]
+  pitcherStats  PitcherStats[]
+  
+  // SNS関連のリレーション
+  groups        Group[]        // 所属グループ
+  posts         Post[]         @relation("UserPosts")
+  comments      Comment[]
+  likes         Like[]
+  
+  // コラム・教材（SKILLBASE）関連のリレーション
+  columns          Column[]         @relation("UserColumns")
+  targetedColumns  Column[]         @relation("ColumnTargetUsers")
+  columnReads      ColumnRead[]
+  columnBookmarks  ColumnBookmark[]
+  columnComments   ColumnComment[]  @relation("UserColumnComments")
+
+  // アンケート回答リレーション
+  pollAnswers   EventPollAnswer[]
+  postPollAnswers PostPollAnswer[]
+
+  // 予定内コメント
+  eventComments EventComment[] @relation("UserEventComments")
+  
+  // 親子関係 (自己参照 - 多対多)
+  parents       User[]         @relation("ParentChild")
+  children      User[]         @relation("ParentChild")
+
+  // デバイス管理
+  devices       UserDevice[]
+
+  // 新着通知用
+  lastReadTimelineAt DateTime? @default(now())
+  pushSubscriptions PushSubscription[]
+
+  // DMリレーション
+  conversations ConversationParticipant[]
+  sentMessages  Message[]
+
+  duesPayments  DuesPayment[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  isSystemAdmin Boolean  @default(false)
+}
+
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  discountPercent Int       @default(100)
+  durationMonths  Int?
+  description     String?
+  active          Boolean   @default(true)
+  expiresAt       DateTime?
+  maxRedemptions  Int?
+  timesRedeemed   Int       @default(0)
+  createdAt       DateTime  @default(now())
+  fullyExempt     Boolean   @default(false)
+
+  teams           Team[]    @relation("TeamCoupon")
+}
+
+model KaihipayConfig {
+  id             String   @id @default("singleton")
+  apiToken       String
+  tokenExpiresAt DateTime
+  updatedAt      DateTime @updatedAt
+}
+
+model Team {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  inviteCode  String   @unique
+  teamCode    String?  @unique
+  
+  category       String   @default("ELEMENTARY")
+  ballType       String?
+
+  homeGround        String?
+  snsLinks          String?  @default("[]")
+  isProfilePublic   Boolean  @default(false)
+
+  maxUsers       Int      @default(30)
+  scorePlan      String   @default("NONE")
+  statsVisibility String  @default("ALL")
+  statsVisibleGroups Group[] @relation("TeamStatsVisibleGroups")
+  storageUsedBytes Float  @default(0)
+  maxStorageBytes  Float  @default(1073741824)
+
+  couponId        String?
+  coupon          Coupon?  @relation("TeamCoupon", fields: [couponId], references: [id])
+  couponAppliedAt DateTime?
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  billingStatus        String   @default("NONE")
+
+  kaihipayCustomerNumber String?
+  kaihipayPaymentMethodRegisteredAt DateTime?
+  trialPaymentReminderSentAt DateTime?
+  trialLockedAt              DateTime?
+
+  overLimitNotifiedAt      DateTime?
+  overLimitReminder10SentAt DateTime?
+  overLimitReminder5SentAt  DateTime?
+  overLimitReminder3SentAt  DateTime?
+
+  entrySlug    String?
+  entryEnabled Boolean  @default(false)
+  entryGuideText String?
+  applications EnrollmentApplication[]
+  duesFeeItems DuesFeeItem[]
+  duesPayments DuesPayment[]
+  duesClosingMonth Int @default(3)
+  duesPaymentInfo String?
+
+  tier         String   @default("FULL")
+  homebaseTrialStartedAt DateTime?
+  downgradeRequestedAt DateTime?
+
+  // リレーション
+  members     User[]
+  events      Event[]
+  groups      Group[]
+  posts       Post[]
+  columns     Column[]
+  albums      Album[]
+  conversations Conversation[]
+  familyOnboardings FamilyOnboarding[]
+  attachDocuments AttachDocument[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// SKILLBASE コラム・教材・動画配信モデル
+model Column {
+  id             String   @id @default(uuid())
+  teamId         String
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User     @relation("UserColumns", fields: [authorId], references: [id], onDelete: Cascade)
+
+  title          String
+  content        String   // 解説本文（見出し記法・改行対応）
+  category       String   @default("BATTING") // "BATTING" | "PITCHING" | "FIELDING" | "RUNNING" | "TRAINING" | "MENTAL" | "NUTRITION" | "TACTICS" | "OTHER"
+
+  // メディア・添付資料
+  youtubeUrl     String?  // YouTube動画URL（埋め込み再生用）
+  videoUrl       String?  // R2直接アップロード動画URL
+  imageUrl       String?  // R2画像URL（カンマ区切りで複数枚対応）
+  thumbnailUrl   String?  // 動画サムネイルURL
+  fileUrl        String?  // PDFや練習メニュー表などの添付資料URL
+  fileName       String?  // 添付資料の元ファイル名
+
+  // オプション
+  isPinned       Boolean  @default(false) // 重要・上部固定
+  allowComments  Boolean  @default(true)  // 選手からの質問・感想コメント許可
+
+  // 配信ターゲット指定
+  // "ALL": 全員（全学年）
+  // "GRADES": 学年別（targetGrades にカンマ区切りで学年番号、例 "1,2"）
+  // "GROUPS": グループ別（targetGroups リレーション）
+  // "USERS": 個別選手指定（targetUsers リレーション）
+  targetType     String   @default("ALL")
+  targetGrades   String?  // カンマ区切り学年 (例: "1" または "1,2")
+  targetGroups   Group[]  @relation("ColumnTargetGroups")
+  targetUsers    User[]   @relation("ColumnTargetUsers")
+
+  reads          ColumnRead[]
+  bookmarks      ColumnBookmark[]
+  comments       ColumnComment[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ColumnRead {
+  id        String   @id @default(uuid())
+  columnId  String
+  column    Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([columnId, userId])
+}
+
+model ColumnBookmark {
+  id        String   @id @default(uuid())
+  columnId  String
+  column    Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([columnId, userId])
+}
+
+model ColumnComment {
+  id        String   @id @default(uuid())
+  columnId  String
+  column    Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("UserColumnComments", fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AttachDocument {
+  id             String   @id @default(uuid())
+  teamId         String
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  type           String
+  title          String
+  status         String   @default("DRAFT")
+
+  sourceFileUrl  String?
+  sourceFileName String?
+
+  bodyText       String?
+  fieldsJson     String   @default("[]")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  responses      AttachDocumentResponse[]
+}
+
+model AttachDocumentResponse {
+  id                String   @id @default(uuid())
+  documentId        String
+  document          AttachDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  answersJson       String
+  respondentName    String
+  respondentContact String?
+  agreedAt          DateTime?
+  pledgeDocumentId  String?
+
+  status            String    @default("PENDING")
+  reviewedAt        DateTime?
+  reviewedById      String?
+  createdPlayerUserId String?
+
+  createdAt         DateTime @default(now())
+}
+
+model EnrollmentApplication {
+  id        String   @id @default(uuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  status    String   @default("PENDING")
+
+  playerName     String
+  playerNameKana String?
+  birthDate      DateTime?
+  schoolName     String?
+  grade          Int?
+  experienceYears String?
+  desiredJoinDate DateTime?
+  healthNotes    String?
+
+  guardianName     String
+  guardianRelation String?
+  guardianPhone    String
+  guardianEmail    String
+  address          String?
+
+  notes     String?
+
+  reviewedAt   DateTime?
+  reviewedById String?
+  createdPlayerUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DuesFeeItem {
+  id     String @id @default(uuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  name   String
+  timing String
+  annualMonth Int?
+
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  amountsByGrade String
+  hasSiblingDiscount   Boolean @default(false)
+  siblingDiscountByRank String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DuesPayment {
+  id     String @id @default(uuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  periodKey String
+
+  paidAt     DateTime?
+  paidAmount Float?
+  note       String?
+  markedBy   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  type        String      @default("PRACTICE")
+  matchType   String?     @default("PRACTICE_MATCH")
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  
+  teamId      String
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  attendances Attendance[]
+  batterStats BatterStats[]
+  pitcherStats PitcherStats[]
+  polls       EventPoll[]
+  targetGroups Group[]
+  gameResults  GameResult[]
+  comments    EventComment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EventComment {
+  id             String   @id @default(uuid())
+  content        String
+  eventId        String
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User     @relation("UserEventComments", fields: [authorId], references: [id], onDelete: Cascade)
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentIsImage Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  eventId   String
+  event     Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String           @default("UNDECIDED")
+  reason    String?
+  
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([eventId, userId])
+}
+
+model BatterStats {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId       String
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  atBats        Int      @default(0)
+  hits          Int      @default(0)
+  homeRuns      Int      @default(0)
+  runsBattedIn  Int      @default(0)
+  runs          Int      @default(0)
+  strikeouts    Int      @default(0)
+  walks         Int      @default(0)
+  stolenBases   Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, eventId])
+}
+
+model PitcherStats {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId        String
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  inningsPitched Float    @default(0.0)
+  outsPitched    Int      @default(0)
+  hitsAllowed    Int      @default(0)
+  runsAllowed    Int      @default(0)
+  earnedRuns     Int      @default(0)
+  strikeouts     Int      @default(0)
+  walksAllowed   Int      @default(0)
+  wins           Int      @default(0)
+  losses         Int      @default(0)
+  saves          Int      @default(0)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, eventId])
+}
+
+model Group {
+  id        String   @id @default(uuid())
+  name      String
+  teamId    String
+  scheduleFullAccess Boolean @default(false)
+  gradeFilter String?
+  isArchived Boolean  @default(false)
+  isObGroup  Boolean  @default(false)
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  members   User[]
+  posts     Post[]
+  targetColumns Column[] @relation("ColumnTargetGroups")
+  polls     EventPoll[]
+  targetEvents Event[]
+  statsVisibleToTeams Team[] @relation("TeamStatsVisibleGroups")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id           String    @id @default(uuid())
+  content      String
+  imageUrl     String?
+  thumbnailUrl String?
+  isVideo      Boolean   @default(false)
+  fileUrl      String?
+  fileName     String?
+  expiresAt    DateTime?
+  isInfo       Boolean   @default(false)
+  authorId     String
+  author       User      @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  teamId       String
+  team         Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  targetGroups Group[]
+  comments     Comment[]
+  likes        Like[]
+  poll         PostPoll?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model PostPoll {
+  id        String            @id @default(uuid())
+  postId    String            @unique
+  post      Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  question  String
+  options   String
+  resultsVisibleToAll Boolean @default(false)
+  answers   PostPollAnswer[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model PostPollAnswer {
+  id             String   @id @default(uuid())
+  pollId         String
+  poll           PostPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selectedOption String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([pollId, userId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model EventPoll {
+  id            String             @id @default(uuid())
+  question      String
+  options       String
+  resultsVisibleToAll Boolean      @default(true)
+
+  eventId       String
+  event         Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  targetGroupId String?
+  targetGroup   Group?             @relation(fields: [targetGroupId], references: [id], onDelete: SetNull)
+  
+  answers       EventPollAnswer[]
+  
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model EventPollAnswer {
+  id             String          @id @default(uuid())
+  pollId         String
+  poll           EventPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selectedOption String
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([pollId, userId])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  
+  createdAt DateTime @default(now())
+}
+
+model UserDevice {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId  String
+  userAgent String?
+  pushToken String?
+  lastActive DateTime @default(now())
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, deviceId])
+}
+
+model GameResult {
+  id           String        @id @default(uuid())
+  eventId      String
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  gameNumber   Int           @default(1)
+  
+  myTeamScore  Int           @default(0)
+  opponentName String?
+  opponentScore Int          @default(0)
+  
+  myTeamHits   Int           @default(0)
+  myTeamErrors Int           @default(0)
+  oppTeamHits  Int           @default(0)
+  oppTeamErrors Int          @default(0)
+  
+  isMyTeamBattingFirst Boolean @default(true)
+
+  status       String        @default("IN_PROGRESS")
+  maxInnings   Int           @default(7)
+  runnersState String        @default("")
+
+  inningScores InningScore[]
+  lineups      Lineup[]
+  atBats       AtBat[]
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([eventId, gameNumber])
+}
+
+model InningScore {
+  id           String      @id @default(uuid())
+  gameResultId String
+  gameResult   GameResult  @relation(fields: [gameResultId], references: [id], onDelete: Cascade)
+  
+  inningNumber Int
+  myRuns       Int?
+  oppRuns      Int?
+  
+  @@unique([gameResultId, inningNumber])
+}
+
+model Lineup {
+  id           String     @id @default(uuid())
+  gameResultId String
+  gameResult   GameResult @relation(fields: [gameResultId], references: [id], onDelete: Cascade)
+  
+  userId       String?
+  playerName   String?
+  
+  teamType     String     @default("MY")
+  role         String     @default("STARTER")
+  battingOrder Int
+  position     String?
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model AtBat {
+  id           String     @id @default(uuid())
+  gameResultId String
+  gameResult   GameResult @relation(fields: [gameResultId], references: [id], onDelete: Cascade)
+  
+  inningNumber Int
+  isTopInning  Boolean
+  teamType     String     @default("MY")
+  batterId     String?
+  batterName   String?
+  result       String
+  rbi          Int        @default(0)
+  runs         Int        @default(0)
+  scoredRunnerIds String  @default("")
+  runnersStateBefore String?
+  order        Int
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Album {
+  id          String   @id @default(uuid())
+  teamId      String
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String?
+  
+  photos      Photo[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FamilyOnboarding {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  teamId    String
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  accounts  String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+}
+
+model Photo {
+  id          String   @id @default(uuid())
+  albumId     String
+  album       Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  
+  url         String
+  sizeBytes   Int      @default(0)
+  
+  uploadedById String
+  
+  createdAt   DateTime @default(now())
+}
+
+model Inquiry {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  type      String
+  content   String
+  status    String   @default("UNREAD")
+  createdAt DateTime @default(now())
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  participants ConversationParticipant[]
+  messages     Message[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  lastReadAt     DateTime     @default(now())
+  
+  createdAt      DateTime     @default(now())
+  
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  
+  content        String
+  imageUrl       String?
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}

@@ -1,0 +1,37 @@
+// Cloudflare Workers デプロイ設定（SKILLBASE本体）
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "skillbase-app",
+  // worker-entry.ts が .open-next/worker.js をラップし、Cronトリガー(scheduled)を追加している。
+  "main": "worker-entry.ts",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // 毎日09:00 JST(00:00 UTC)に人数上限超過チームをチェックする(2026-08-27追加)。
+  "triggers": {
+    "crons": ["0 0 * * *"]
+  },
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "skillbase-db",
+      "database_id": "19f4e234-1b57-4fe3-ad08-356391939a87",
+      "migrations_dir": "prisma/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "baseball-saas-strage"
+    }
+  ],
+  "routes": [
+    { "pattern": "skillbase.easystance.app", "custom_domain": true }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
