@@ -1,32 +1,44 @@
 {
-  "name": "HOMEBASE - 少年野球チーム管理",
-  "short_name": "HOMEBASE",
-  "description": "野球チームのスケジュール・出欠・成績管理アプリ",
+  "name": "SKILLBASE - 知識・技術・指導共有ツール",
+  "short_name": "SKILLBASE",
+  "description": "野球チームの技術コラム・動画教材・野球ノート・連絡共有アプリ",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "/icon-192x192.png?v=2",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "/icon-512x512.png?v=2",
       "sizes": "512x512",
       "type": "image/png"
     }
   ],
   "shortcuts": [
     {
-      "name": "アプリ管理画面",
-      "short_name": "アプリ管理",
-      "description": "システム管理ダッシュボードを開きます",
-      "url": "/admin",
+      "name": "野球ノート",
+      "short_name": "野球ノート",
+      "description": "野球ノートを開きます",
+      "url": "/dashboard/notes",
       "icons": [
         {
-          "src": "/icon-192x192.png",
+          "src": "/icon-192x192.png?v=2",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "コラム・教材",
+      "short_name": "コラム",
+      "description": "技術コラム・動画教材を開きます",
+      "url": "/dashboard/columns",
+      "icons": [
+        {
+          "src": "/icon-192x192.png?v=2",
           "sizes": "192x192"
         }
       ]

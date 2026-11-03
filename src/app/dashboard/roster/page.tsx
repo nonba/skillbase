@@ -2074,7 +2074,7 @@ export default function RosterPage() {
                   id="new-member-password"
                   type="text"
                   className="form-control"
-                  placeholder="例: homebase1234"
+                  placeholder="例: skillbase1234"
                   value={newMemberPassword}
                   onChange={(e) => setNewMemberPassword(e.target.value)}
                   required
@@ -2194,7 +2194,7 @@ export default function RosterPage() {
                     <input
                       type="text"
                       readOnly
-                      value={typeof window !== "undefined" ? `${window.location.origin}/invite/manager?code=${teamRes.team.inviteCode}` : `https://homebase.easystance.app/invite/manager?code=${teamRes.team.inviteCode}`}
+                      value={typeof window !== "undefined" ? `${window.location.origin}/invite/manager?code=${teamRes.team.inviteCode}` : `https://skillbase.easystance.app/invite/manager?code=${teamRes.team.inviteCode}`}
                       className="form-control"
                       style={{ fontSize: "13px", background: "rgba(0,0,0,0.03)", fontFamily: "monospace" }}
                     />
@@ -2216,7 +2216,7 @@ export default function RosterPage() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
                   <a
-                    href={`https://line.me/R/msg/text/?${encodeURIComponent(`【HOMEBASE】指導者登録の招待\n${teamRes?.team?.name || "チーム"}の指導者として登録してください。\n以下のリンクから登録できます：\n${typeof window !== "undefined" ? window.location.origin : "https://homebase.easystance.app"}/invite/manager?code=${teamRes.team.inviteCode}`)}`}
+                    href={`https://line.me/R/msg/text/?${encodeURIComponent(`【SKILLBASE】指導者登録の招待\n${teamRes?.team?.name || "チーム"}の指導者として登録してください。\n以下のリンクから登録できます：\n${typeof window !== "undefined" ? window.location.origin : "https://skillbase.easystance.app"}/invite/manager?code=${teamRes.team.inviteCode}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="btn"

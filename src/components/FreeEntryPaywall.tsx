@@ -10,7 +10,7 @@ const PLANS = [
   { users: 120, price: "8,500" },
 ];
 
-// FREE_ENTRY(入団申込み・団費管理のみの無料枠)チームが、HOMEBASE本体側の機能(タイムライン等)を
+// FREE_ENTRY(入団申込み・団費管理のみの無料枠)チームが、SKILLBASE本体側の機能(タイムライン等)を
 // 開こうとした時に、実際の画面の代わりに表示するPR・料金案内(2026-09-02追加)。
 // 「ロック表示で終わらせず、料金表を見せて契約に誘導したい」というオーナー要望に基づく。
 // 2026-09-09再追記: App Store審査(Guideline 3.1.1)で「ブラウザで◯◯にアクセスしてお手続きください」
@@ -24,10 +24,10 @@ export default function FreeEntryPaywall({ featureName }: { featureName: string 
       <div className="card card-glass" style={{ textAlign: "center", padding: "32px 24px" }}>
         <div style={{ fontSize: "40px", marginBottom: "12px" }}>🔒</div>
         <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginBottom: "4px" }}>
-          HOMEBASE Attach（HOMEBASEの無料開放部分）をご利用中です
+          SKILLBASE Attach（SKILLBASEの無料開放部分）をご利用中です
         </p>
         <h1 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "8px" }}>
-          {featureName}はHOMEBASE本体の機能です
+          {featureName}はSKILLBASE本体の機能です
         </h1>
 
         {native ? (
@@ -37,9 +37,9 @@ export default function FreeEntryPaywall({ featureName }: { featureName: string 
         ) : (
           <>
             <p style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.7, marginBottom: "24px" }}>
-              「HOMEBASE Attach」は、入団申込み・団員リスト・団費計算をどなたでも無料でご利用いただける、
-              HOMEBASE本体の一部の機能です。スケジュール共有・出欠管理・タイムライン・スコア管理など
-              HOMEBASE本体の全機能は、<strong style={{ color: "var(--text-main)" }}>登録月＋翌月無料</strong>でお試しいただけます。
+              「SKILLBASE Attach」は、入団申込み・団員リスト・団費計算をどなたでも無料でご利用いただける、
+              SKILLBASE本体の一部の機能です。スケジュール共有・出欠管理・タイムライン・スコア管理など
+              SKILLBASE本体の全機能は、<strong style={{ color: "var(--text-main)" }}>登録月＋翌月無料</strong>でお試しいただけます。
             </p>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "8px", marginBottom: "24px" }}>

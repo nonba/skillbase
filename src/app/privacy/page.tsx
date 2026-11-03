@@ -2,8 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'プライバシーポリシー | HOMEBASE',
-  description: 'HOMEBASE（ホームベース）のプライバシーポリシーです。',
+  title: 'プライバシーポリシー | SKILLBASE',
+  description: 'SKILLBASE（スキルベース）のプライバシーポリシーです。',
 };
 
 export default function PrivacyPage() {
@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto bg-white p-8 sm:p-12 rounded-2xl shadow-sm border border-slate-200">
         <div className="mb-8 border-b pb-6">
           <Link href="/" className="text-emerald-600 font-bold hover:underline mb-4 inline-block">
-            ← HOMEBASE トップへ戻る
+            ← SKILLBASE トップへ戻る
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900">プライバシーポリシー</h1>
           <p className="text-sm text-slate-500 mt-2">最終更新日: 2026年8月13日</p>
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-bold text-slate-900 mb-2">1. はじめに</h2>
             <p>
-              HOMEBASE（以下、「当サービス」）は、ユーザーの皆様の個人情報の保護を重要視し、以下の方針に基づき個人情報を適切に取り扱います。本プライバシーポリシーは、当サービスが提供するウェブサイトおよびモバイルアプリケーションに適用されます。
+              SKILLBASE（以下、「当サービス」）は、ユーザーの皆様の個人情報の保護を重要視し、以下の方針に基づき個人情報を適切に取り扱います。本プライバシーポリシーは、当サービスが提供するウェブサイトおよびモバイルアプリケーションに適用されます。
             </p>
           </section>
 
@@ -67,7 +67,7 @@ export default function PrivacyPage() {
               本プライバシーポリシーに関するご質問やデータの開示・削除のご請求は、以下の窓口までご連絡ください。
             </p>
             <p className="mt-2 font-medium text-slate-900">
-              EASY STANCE / HOMEBASE サポート窓口<br />
+              EASY STANCE / SKILLBASE サポート窓口<br />
               メールアドレス: <a href="mailto:support@easystance.app" className="text-emerald-600 underline">support@easystance.app</a>
             </p>
           </section>

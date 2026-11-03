@@ -139,7 +139,7 @@ export default function BulkRegisterModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "homebase_選手一括登録テンプレート.csv";
+    a.download = "skillbase_選手一括登録テンプレート.csv";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -191,7 +191,7 @@ export default function BulkRegisterModal({
     const lines = result.map(
       (a) => `${roleLabel(a.role)}\t${a.name}\tID: ${a.loginId}\t仮パスワード: ${a.tempPassword}`
     );
-    const text = "HOMEBASE ログイン情報一覧\n" + lines.join("\n");
+    const text = "SKILLBASE ログイン情報一覧\n" + lines.join("\n");
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -213,7 +213,7 @@ export default function BulkRegisterModal({
     const a = document.createElement("a");
     const stamp = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `homebase_ログイン情報_${stamp}.csv`;
+    a.download = `skillbase_ログイン情報_${stamp}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

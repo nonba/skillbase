@@ -4,7 +4,7 @@ import { getEnv } from "@/lib/env";
 
 export async function GET(req: Request) {
   const token = new URL(req.url).searchParams.get("token");
-  const base = (getEnv("NEXTAUTH_URL") || process.env.NEXTAUTH_URL || "https://homebase.easystance.app").replace(/\/$/, "");
+  const base = (getEnv("NEXTAUTH_URL") || process.env.NEXTAUTH_URL || "https://skillbase.easystance.app").replace(/\/$/, "");
 
   if (!token) {
     return NextResponse.redirect(`${base}/login?verify_error=1`);

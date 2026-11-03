@@ -63,7 +63,7 @@ export function PushNotificationManager({ headless = false }: { headless?: boole
     try {
       const { PushNotifications } = await import("@capacitor/push-notifications");
 
-      // 1. Android用の通知チャンネルを再作成（v1: HOMEBASE改名。旧strike-*チャンネルは削除して移行）
+      // 1. Android用の通知チャンネルを再作成（v1: SKILLBASE改名。旧strike-*チャンネルは削除して移行）
       if ((window as any).Capacitor.getPlatform() === "android") {
         // 古いチャンネルをすべて削除
         const oldIds = ["strike-calls", "strike-calls-v2", "strike-calls-v3", "strike-messages", "strike-messages-v2", "strike-messages-v3"];
@@ -74,7 +74,7 @@ export function PushNotificationManager({ headless = false }: { headless?: boole
         // 通話着信チャネル：カスタム着信音（call_ringtone.wav）を使用、重要度MAX
         await PushNotifications.createChannel({
           id: "homebase-calls-v1",
-          name: "HOMEBASE 通話着信",
+          name: "SKILLBASE 通話着信",
           description: "通話とビデオ通話の着信通知用のチャンネル",
           importance: 5,
           sound: "call_ringtone", // android/app/src/main/res/raw/call_ringtone.wav
@@ -85,7 +85,7 @@ export function PushNotificationManager({ headless = false }: { headless?: boole
         // 通常メッセージチャネル
         await PushNotifications.createChannel({
           id: "homebase-messages-v1",
-          name: "HOMEBASE メッセージ",
+          name: "SKILLBASE メッセージ",
           description: "通常のメッセージ通知用のチャンネル",
           importance: 4,
           sound: "default",
@@ -151,7 +151,7 @@ export function PushNotificationManager({ headless = false }: { headless?: boole
           body: JSON.stringify({
             token: token.value,
             deviceId: `native-${platform}-${getLocalDeviceUuid()}`,
-            userAgent: `HOMEBASE ${platform === "android" ? "Android" : "iOS"} App`
+            userAgent: `SKILLBASE ${platform === "android" ? "Android" : "iOS"} App`
           }),
         });
         setIsSubscribed(true);
@@ -256,7 +256,7 @@ export function PushNotificationManager({ headless = false }: { headless?: boole
             
             const platform = (window as any).Capacitor.getPlatform();
             const deviceId = `native-${platform}-${getLocalDeviceUuid()}`;
-            const userAgent = `HOMEBASE ${platform === 'android' ? 'Android' : 'iOS'} App`;
+            const userAgent = `SKILLBASE ${platform === 'android' ? 'Android' : 'iOS'} App`;
 
             // サーバーのUserDeviceテーブルにデバイストークンを保存
             const res = await fetch("/api/user/update-device", {

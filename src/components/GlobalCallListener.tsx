@@ -349,7 +349,7 @@ export default function GlobalCallListener() {
           border: "1px solid #00ffcc"
         }}>
           <div style={{ fontWeight: "bold", borderBottom: "1px solid #00ffcc", paddingBottom: "4px", marginBottom: "4px" }}>
-            📡 HOMEBASE REALTIME DEBUGGER
+            📡 SKILLBASE REALTIME DEBUGGER
           </div>
           {debugLogs.length === 0 ? (
             <div style={{ color: "#aaa" }}>ログなし (操作を待機中)</div>

@@ -12,7 +12,7 @@ self.addEventListener("fetch", function () {
 });
 
 self.addEventListener("push", function (event) {
-  let title = "STRIKEからの通知";
+  let title = "SKILLBASEからの通知";
   let body = "新しい通知があります";
   let url = "/dashboard";
 

@@ -5,11 +5,11 @@ export default function AccountDeletionPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
       <main className="container animate-fade-in" style={{ padding: "40px 24px", flex: 1, maxWidth: "800px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: 800, marginBottom: "24px", color: "var(--text-main)" }}>HOMEBASE アカウント削除・データ削除のご案内</h1>
+        <h1 style={{ fontSize: "28px", fontWeight: 800, marginBottom: "24px", color: "var(--text-main)" }}>SKILLBASE アカウント削除・データ削除のご案内</h1>
 
         <div className="card card-glass" style={{ padding: "32px", color: "var(--text-main)", lineHeight: 1.8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px" }}>
           <p style={{ marginBottom: "24px" }}>
-            HOMEBASE（野球チーム管理アプリ）のアカウントおよび、それに紐づく個人データの削除をご希望の場合の手順をご案内します。
+            SKILLBASE（野球チーム管理アプリ）のアカウントおよび、それに紐づく個人データの削除をご希望の場合の手順をご案内します。
           </p>
 
           <h2 style={{ fontSize: "18px", fontWeight: 700, marginTop: "32px", marginBottom: "12px", borderBottom: "1px solid var(--border)", paddingBottom: "8px" }}>アプリ内から削除する（推奨）</h2>

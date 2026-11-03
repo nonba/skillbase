@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// 「HOMEBASE Attach」専用ナビ(2026-09-03新設)。/dashboard側のBottomNavとは完全に別コンポーネント。
-// HOMEBASE本体との行き来は、AreaSwitchBar(全ページ上部の常設バー、鍵アイコンでFREE_ENTRYにも
+// 「SKILLBASE Attach」専用ナビ(2026-09-03新設)。/dashboard側のBottomNavとは完全に別コンポーネント。
+// SKILLBASE本体との行き来は、AreaSwitchBar(全ページ上部の常設バー、鍵アイコンでFREE_ENTRYにも
 // 分かりやすく)に一本化した(2026-09-03)。ここに重複したリンクを置くとナビが煩雑になるため置かない。
 // 2026-09-04: オーナー案(CLAUDE_HANDOFF.md Update #54)に合わせ「選手一覧/入団申込/会費管理/設定管理」の
 // 4項目に再編。旧来の「管理」単体リンクは、書類の保管庫と管理ページをまとめた「設定管理」ハブ
@@ -41,7 +41,7 @@ export default function AttachNav() {
       <nav className="attach-sidebar">
         <div style={{ padding: "24px 20px" }}>
           <div className="attach-brand">
-            <div className="attach-brand-logo">HOMEBASE <span>Attach</span></div>
+            <div className="attach-brand-logo">SKILLBASE <span>Attach</span></div>
             <div className="attach-brand-sub">入団・団費管理</div>
           </div>
 

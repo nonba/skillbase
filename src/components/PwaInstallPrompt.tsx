@@ -71,7 +71,7 @@ export function PwaInstallPrompt() {
           <span style={{ fontSize: "22px" }}>📱</span>
           <div>
             <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 800, color: "#fff" }}>
-              HOMEBASE アプリをインストール
+              SKILLBASE アプリをインストール
             </h4>
           </div>
         </div>

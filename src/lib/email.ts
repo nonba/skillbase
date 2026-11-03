@@ -11,7 +11,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   }
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
-    from: "HOMEBASE <noreply@easystance.app>",
+    from: "SKILLBASE <noreply@easystance.app>",
     to,
     subject,
     html,
@@ -22,19 +22,19 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
 }
 
 function getAppBaseUrl(): string {
-  return (getEnv("NEXTAUTH_URL") || process.env.NEXTAUTH_URL || "https://homebase.easystance.app").replace(/\/$/, "");
+  return (getEnv("NEXTAUTH_URL") || process.env.NEXTAUTH_URL || "https://skillbase.easystance.app").replace(/\/$/, "");
 }
 
 export async function sendVerificationEmail(to: string, name: string, token: string): Promise<void> {
   const verifyUrl = `${getAppBaseUrl()}/api/auth/verify-email?token=${token}`;
   const html = `
     <p>${name} 様</p>
-    <p>HOMEBASEへのご登録ありがとうございます。以下のリンクをクリックして、メールアドレスの確認を完了してください。</p>
+    <p>SKILLBASEへのご登録ありがとうございます。以下のリンクをクリックして、メールアドレスの確認を完了してください。</p>
     <p><a href="${verifyUrl}">${verifyUrl}</a></p>
     <p>リンクをクリックするまでログインできませんのでご注意ください。</p>
     <p>心当たりがない場合は、このメールを破棄してください。</p>
   `;
-  await sendEmail(to, "【HOMEBASE】メールアドレスの確認をお願いします", html);
+  await sendEmail(to, "【SKILLBASE】メールアドレスの確認をお願いします", html);
 }
 
 // 申込書(/d/[id]、書類の保管庫のAPPLICATION種別)が送信された際、チーム管理者(isOwner or role=MANAGER)全員に送る通知。
@@ -50,7 +50,7 @@ export async function sendEnrollmentNotificationEmails(
     <p>選手名: ${playerName}<br/>保護者名: ${guardianName}</p>
     <p>内容の確認はこちらから: <a href="${appUrl}">${appUrl}</a></p>
   `;
-  await Promise.all(toList.map((to) => sendEmail(to, "【HOMEBASE】新しい入団申込みが届きました", html)));
+  await Promise.all(toList.map((to) => sendEmail(to, "【SKILLBASE】新しい入団申込みが届きました", html)));
 }
 
 export interface DuesEmailLineItem {

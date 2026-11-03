@@ -38,7 +38,7 @@ export default function FamilyOnboardingPage() {
     <div style={{ minHeight: "100vh", background: "var(--background, #f8fafc)", padding: "24px 16px" }}>
       <div style={{ maxWidth: "480px", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <div style={{ fontSize: "22px", fontWeight: 900, background: "linear-gradient(135deg, #4f46e5, #ff8c00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>HOMEBASE</div>
+          <div style={{ fontSize: "22px", fontWeight: 900, background: "linear-gradient(135deg, #4f46e5, #ff8c00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>SKILLBASE</div>
           {teamName && <div style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}>{teamName}</div>}
         </div>
 
@@ -76,7 +76,7 @@ export default function FamilyOnboardingPage() {
             </div>
 
             <a
-              href="https://homebase.easystance.app/login"
+              href="https://skillbase.easystance.app/login"
               style={{ display: "block", textAlign: "center", background: "#4f46e5", color: "#fff", fontWeight: 700, padding: "14px", borderRadius: "12px", textDecoration: "none", fontSize: "15px" }}
             >
               ログイン画面を開く

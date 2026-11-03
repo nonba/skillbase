@@ -24,7 +24,7 @@ export default function AttachDocumentPreview({
       <div style={{ maxWidth: "440px", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
           <div style={{ fontSize: "18px", fontWeight: 900, background: "linear-gradient(135deg, #4f46e5, #ff8c00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            HOMEBASE
+            SKILLBASE
           </div>
           <div style={{ fontSize: "14px", fontWeight: 700, marginTop: "4px" }}>
             {teamName ? `${teamName} ` : ""}{title || "(タイトル未入力)"}

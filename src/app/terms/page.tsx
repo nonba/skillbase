@@ -27,7 +27,7 @@ export default function TermsPage() {
         
         <div className="card card-glass" style={{ padding: "32px", color: "var(--text-main)", lineHeight: 1.8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px" }}>
           <p style={{ marginBottom: "24px" }}>
-            この利用規約（以下、「本規約」といいます。）は、HOMEBASE（以下、「当サービス」といいます。）がこのウェブサイト上で提供する野球チーム管理サービス（以下、「本サービス」といいます。）の利用条件を定めるものです。登録ユーザーの皆さま（以下、「ユーザー」といいます。）には、本規約に従って、本サービスをご利用いただきます。
+            この利用規約（以下、「本規約」といいます。）は、SKILLBASE（以下、「当サービス」といいます。）がこのウェブサイト上で提供する野球チーム管理サービス（以下、「本サービス」といいます。）の利用条件を定めるものです。登録ユーザーの皆さま（以下、「ユーザー」といいます。）には、本規約に従って、本サービスをご利用いただきます。
           </p>
 
           <h2 style={{ fontSize: "18px", fontWeight: 700, marginTop: "32px", marginBottom: "12px", borderBottom: "1px solid var(--border)", paddingBottom: "8px" }}>第1条（適用）</h2>

@@ -6,9 +6,9 @@ import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 
-// 「入団・団費管理(HOMEBASE Attach)」⇔「HOMEBASE本体」の常設切り替えバー(2026-09-03新設→
+// 「入団・団費管理(SKILLBASE Attach)」⇔「SKILLBASE本体」の常設切り替えバー(2026-09-03新設→
 // 一度PC03側の判断で撤去→オーナーの希望で鍵アイコン付きで復活)。
-// 経緯: 最初は常時同じ見た目のタブだったため、FREE_ENTRYチームが「HOMEBASE」タブに触れるたびに
+// 経緯: 最初は常時同じ見た目のタブだったため、FREE_ENTRYチームが「SKILLBASE」タブに触れるたびに
 // 予告なく料金案内画面へ飛ばされ「気持ち悪い」という指摘があった。今回は事前に🔒を出して
 // 「これは有料機能です」と分かった上で踏めるようにし、実際に踏むと(/dashboard/scheduleへ誘導し)
 // FreeEntryPaywallの料金案内が表示される。FULLチームには🔒を付けず、素の/dashboardへリンクする。
@@ -29,10 +29,10 @@ export default function AreaSwitchBar() {
     <div className="area-switch-bar">
       <Link href={homebaseHref} className={`area-switch-bar-item ${!inEntryArea ? "active" : ""}`}>
         {isFreeEntry && <span style={{ marginRight: "4px" }}>🔒</span>}
-        🏠 HOMEBASE
+        🏠 SKILLBASE
       </Link>
       <Link href="/attach/team-roster" className={`area-switch-bar-item ${inEntryArea ? "active" : ""}`}>
-        📋 HOMEBASE Attach
+        📋 SKILLBASE Attach
       </Link>
 
       <style dangerouslySetInnerHTML={{__html: `

@@ -36,7 +36,7 @@ export default function SettingsPage() {
   const team = teamRes?.team || null;
   const loading = !teamRes && !!session?.user?.teamId;
 
-  // トライアル中は支払い登録を急がせない(会費Payの口座振替登録手数料500円はHOMEBASE負担のため、
+  // トライアル中は支払い登録を急がせない(会費Payの口座振替登録手数料500円はSKILLBASE負担のため、
   // 続けるか分からない段階で登録されると無駄なコストになる)。billing-checkの督促開始日(トライアル
   // 終了月の前月25日)と同じ基準で、それより前は登録フォーム自体を出さない(2026-09-03追加)。
   const isEarlyForPaymentPrompt = (() => {
@@ -513,7 +513,7 @@ export default function SettingsPage() {
           <div className="card card-glass" style={{ borderLeft: "4px solid var(--accent)" }}>
             <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "8px" }}>🆓 現在は無料プランです</h2>
             <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px", lineHeight: 1.7 }}>
-              入団申込み・団員リスト・団費計算の機能を無料でご利用いただけます。スケジュール共有・出欠管理・タイムライン・スコア管理などHOMEBASE本体の全機能は、下のボタンから試すことができます（登録月＋翌月は無料）。
+              入団申込み・団員リスト・団費計算の機能を無料でご利用いただけます。スケジュール共有・出欠管理・タイムライン・スコア管理などSKILLBASE本体の全機能は、下のボタンから試すことができます（登録月＋翌月は無料）。
             </p>
             <StartTrialButton onDone={() => mutateTeam()} />
           </div>

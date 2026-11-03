@@ -60,7 +60,7 @@ export default function FamilyOnboardingPrintPage() {
 
       <div style={{ border: "2px solid #4f46e5", borderRadius: "16px", padding: "28px" }}>
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
-          <div style={{ fontSize: "24px", fontWeight: 900, color: "#4f46e5" }}>HOMEBASE</div>
+          <div style={{ fontSize: "24px", fontWeight: 900, color: "#4f46e5" }}>SKILLBASE</div>
           <div style={{ fontSize: "14px", color: "#555", marginTop: "4px" }}>{teamName} ご家族用 ログイン情報</div>
         </div>
 
@@ -92,7 +92,7 @@ export default function FamilyOnboardingPrintPage() {
 
         <div style={{ background: "#f5f5f5", borderRadius: "8px", padding: "14px 16px", fontSize: "12px", lineHeight: 1.7, color: "#444" }}>
           <strong>ご案内</strong><br />
-          ①アプリをインストール、またはブラウザで homebase.easystance.app を開いてください。<br />
+          ①アプリをインストール、またはブラウザで skillbase.easystance.app を開いてください。<br />
           ②上記のIDとパスワードでログインしてください。<br />
           ③初回ログイン時にパスワードの変更をお願いします。<br />
           ※このシートは30日間有効です。紛失した場合はチーム管理者にご連絡ください。

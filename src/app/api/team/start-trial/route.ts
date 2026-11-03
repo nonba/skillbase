@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-// FREE_ENTRY(無料の入団管理機能のみ)のチームが「HOMEBASEを試す」を選んだ時に呼ぶ。
+// FREE_ENTRY(無料の入団管理機能のみ)のチームが「SKILLBASEを試す」を選んだ時に呼ぶ。
 // tierをFULLに切り替え、homebaseTrialStartedAtを今にセットする(登録月＋翌月無料トライアルの起点)。
 // 一度FULLに切り替えたら、このAPIは再度呼んでもトライアル開始日を上書きしない(初回のみ)。
 export async function POST() {
@@ -31,7 +31,7 @@ export async function POST() {
       return NextResponse.json({ error: "チームが見つかりません。" }, { status: 404 });
     }
     if (team.tier === "FULL") {
-      return NextResponse.json({ error: "すでにHOMEBASE本体をご利用中です。" }, { status: 400 });
+      return NextResponse.json({ error: "すでにSKILLBASE本体をご利用中です。" }, { status: 400 });
     }
 
     const updated = await db.team.update({
