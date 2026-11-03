@@ -77,3 +77,6 @@ src/list-tables.js
 src/parents-backup.json
 src/read-user-requests.js
 src/restore-parents.js
+
+# OneDrive conflict stubs
+*-DESKTOP-*

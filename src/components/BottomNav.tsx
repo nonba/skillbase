@@ -11,46 +11,56 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const isManager =
-    (session?.user as any)?.isOwner ||
-    (session?.user as any)?.canManageUsers ||
+    session?.user?.isOwner ||
+    session?.user?.canManageUsers ||
     session?.user?.role === "MANAGER";
 
-  const { data: unreadData } = useSWR(
+  const { data: notifData } = useSWR(
     session?.user && pathname !== "/dashboard" ? "/api/user/notifications" : null,
     fetcher,
     { revalidateOnFocus: true }
   );
 
-  const { data: dmData } = useSWR(session?.user ? "/api/messages" : null, fetcher, {
-    revalidateOnFocus: true,
-  });
-  const dmUnreadCount = dmData ? dmData.filter((c: any) => c.hasUnread).length : 0;
+  const { data: convData } = useSWR(
+    session?.user ? "/api/messages" : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
+  const unreadMessagesCount = convData
+    ? convData.filter((c: { hasUnread?: boolean }) => c.hasUnread).length
+    : 0;
 
-  const { data: columnsData } = useSWR(
+  const { data: columnData } = useSWR(
     session?.user?.teamId ? "/api/columns" : null,
     fetcher,
     { revalidateOnFocus: true }
   );
-  const columnUnreadCount = columnsData?.unreadCount || 0;
+  const unreadColumnsCount = columnData?.unreadCount || 0;
+
+  const { data: noteData } = useSWR(
+    session?.user?.teamId ? "/api/notes" : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
+  const unrepliedNotesCount = noteData?.unrepliedCount || 0;
 
   useEffect(() => {
     if (pathname === "/dashboard") {
       setUnreadCount(0);
-    } else if (unreadData) {
-      setUnreadCount(unreadData.unreadCount || 0);
+    } else if (notifData) {
+      setUnreadCount(notifData.unreadCount || 0);
     }
-  }, [pathname, unreadData]);
+  }, [pathname, notifData]);
 
   useEffect(() => {
-    setIsMoreOpen(false);
+    setIsDrawerOpen(false);
   }, [pathname]);
 
   return (
     <>
-      {/* スマホ用ボトムナビゲーション (4項目: タイムライン / コラム・教材 / メッセージ / メニュー) */}
       <nav className="bottom-nav">
         <Link
           href="/dashboard"
@@ -63,6 +73,7 @@ export default function BottomNav() {
           </span>
           <span className="label">タイムライン</span>
         </Link>
+
         <Link
           href="/dashboard/columns"
           className={`nav-item ${pathname?.startsWith("/dashboard/columns") ? "active" : ""}`}
@@ -70,12 +81,27 @@ export default function BottomNav() {
         >
           <span className="icon">
             📚
-            {columnUnreadCount > 0 && (
-              <span className="badge-count">{columnUnreadCount}</span>
+            {unreadColumnsCount > 0 && (
+              <span className="badge-count">{unreadColumnsCount}</span>
             )}
           </span>
-          <span className="label">コラム・教材</span>
+          <span className="label">コラム</span>
         </Link>
+
+        <Link
+          href="/dashboard/notes"
+          className={`nav-item ${pathname?.startsWith("/dashboard/notes") ? "active" : ""}`}
+          style={{ position: "relative" }}
+        >
+          <span className="icon">
+            📓
+            {unrepliedNotesCount > 0 && (
+              <span className="badge-count">{unrepliedNotesCount}</span>
+            )}
+          </span>
+          <span className="label">野球ノート</span>
+        </Link>
+
         <Link
           href="/dashboard/messages"
           className={`nav-item ${pathname?.startsWith("/dashboard/messages") ? "active" : ""}`}
@@ -83,33 +109,43 @@ export default function BottomNav() {
         >
           <span className="icon">
             ✉️
-            {dmUnreadCount > 0 && <span className="badge-count">{dmUnreadCount}</span>}
+            {unreadMessagesCount > 0 && (
+              <span className="badge-count">{unreadMessagesCount}</span>
+            )}
           </span>
           <span className="label">メッセージ</span>
         </Link>
+
         <button
           type="button"
-          onClick={() => setIsMoreOpen(!isMoreOpen)}
-          className={`nav-item btn-clean ${isMoreOpen ? "active" : ""}`}
+          onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+          className={`nav-item btn-clean ${isDrawerOpen ? "active" : ""}`}
         >
           <span className="icon">☰</span>
           <span className="label">メニュー</span>
         </button>
       </nav>
 
-      {/* モバイル用スライドアップ「メニュー」ドロワー */}
-      {isMoreOpen && (
-        <div className="drawer-overlay" onClick={() => setIsMoreOpen(false)}>
-          <div className="drawer-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
+      {isDrawerOpen && (
+        <div className="drawer-overlay" onClick={() => setIsDrawerOpen(false)}>
+          <div
+            className="drawer-card animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="drawer-header">
-              <div className="drawer-handle"></div>
-              <h3 style={{ fontSize: "16px", fontWeight: 800 }}>⚡ SKILLBASE メニュー</h3>
+              <div className="drawer-handle" />
+              <h3 style={{ fontSize: "16px", fontWeight: 800 }}>
+                ⚡ SKILLBASE メニュー
+              </h3>
             </div>
-
             <div className="drawer-grid">
               <Link href="/dashboard/columns" className="drawer-item">
                 <span className="drawer-icon">📚</span>
                 <span className="drawer-label">コラム・教材</span>
+              </Link>
+              <Link href="/dashboard/notes" className="drawer-item">
+                <span className="drawer-icon">📓</span>
+                <span className="drawer-label">野球ノート</span>
               </Link>
               <Link href="/dashboard/roster" className="drawer-item">
                 <span className="drawer-icon">👥</span>
@@ -126,11 +162,10 @@ export default function BottomNav() {
                 </Link>
               )}
             </div>
-
             <button
               type="button"
               className="drawer-close-btn"
-              onClick={() => setIsMoreOpen(false)}
+              onClick={() => setIsDrawerOpen(false)}
             >
               閉じる
             </button>
@@ -138,7 +173,6 @@ export default function BottomNav() {
         </div>
       )}
 
-      {/* デスクトップ用左側サイドバー */}
       <nav className="desktop-sidebar">
         <div style={{ padding: "24px 20px" }}>
           <div style={{ marginBottom: "24px", padding: "0 8px" }}>
@@ -157,13 +191,18 @@ export default function BottomNav() {
             >
               <span style={{ color: "var(--primary)" }}>⚡</span> SKILLBASE
             </Link>
-            <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+            <p
+              style={{
+                fontSize: "11px",
+                color: "var(--text-muted)",
+                marginTop: "2px",
+              }}
+            >
               知識・技術・指導共有ツール
             </p>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {/* メイン機能 */}
             <div>
               <h2 className="sidebar-section-title">メイン機能</h2>
               <div className="sidebar-group">
@@ -173,7 +212,9 @@ export default function BottomNav() {
                   style={{ display: "flex", justifyContent: "space-between" }}
                 >
                   <span>💬 タイムライン</span>
-                  {unreadCount > 0 && <span className="sidebar-badge">New</span>}
+                  {unreadCount > 0 && (
+                    <span className="sidebar-badge">New</span>
+                  )}
                 </Link>
                 <Link
                   href="/dashboard/columns"
@@ -181,8 +222,18 @@ export default function BottomNav() {
                   style={{ display: "flex", justifyContent: "space-between" }}
                 >
                   <span>📚 コラム・教材</span>
-                  {columnUnreadCount > 0 && (
-                    <span className="sidebar-badge">{columnUnreadCount}</span>
+                  {unreadColumnsCount > 0 && (
+                    <span className="sidebar-badge">{unreadColumnsCount}</span>
+                  )}
+                </Link>
+                <Link
+                  href="/dashboard/notes"
+                  className={`desktop-nav-item ${pathname?.startsWith("/dashboard/notes") ? "active" : ""}`}
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span>📓 野球ノート</span>
+                  {unrepliedNotesCount > 0 && (
+                    <span className="sidebar-badge">{unrepliedNotesCount}</span>
                   )}
                 </Link>
                 <Link
@@ -191,12 +242,13 @@ export default function BottomNav() {
                   style={{ display: "flex", justifyContent: "space-between" }}
                 >
                   <span>✉️ メッセージ</span>
-                  {dmUnreadCount > 0 && <span className="sidebar-badge">{dmUnreadCount}</span>}
+                  {unreadMessagesCount > 0 && (
+                    <span className="sidebar-badge">{unreadMessagesCount}</span>
+                  )}
                 </Link>
               </div>
             </div>
 
-            {/* チーム資源・設定 */}
             <div>
               <h2 className="sidebar-section-title">メンバー・設定</h2>
               <div className="sidebar-group">
@@ -255,7 +307,7 @@ export default function BottomNav() {
             backdrop-filter: blur(15px);
             border-top: 1px solid var(--border);
             z-index: 1000;
-            padding: 8px 12px;
+            padding: 8px 6px;
             padding-bottom: calc(8px + env(safe-area-inset-bottom, 12px));
             justify-content: space-around;
           }
@@ -288,7 +340,7 @@ export default function BottomNav() {
           .badge-dot {
             position: absolute;
             top: 2px;
-            right: 18px;
+            right: 14px;
             background: var(--danger);
             color: #fff;
             font-size: 9px;
@@ -301,7 +353,7 @@ export default function BottomNav() {
           .badge-count {
             position: absolute;
             top: 2px;
-            right: 14px;
+            right: 10px;
             background: var(--danger);
             color: #fff;
             font-size: 9px;

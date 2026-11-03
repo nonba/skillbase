@@ -41,7 +41,7 @@ export default function ColumnDetailPage({
 
   const column = detailRes?.column;
   const isCoach = Boolean(detailRes?.isCoach);
-  const teamCategory = teamRes?.team?.category || "ELEMENTARY";
+  const teamCategory = teamRes?.team?.category || "JUNIOR_HIGH";
 
   if (!detailRes) {
     return (

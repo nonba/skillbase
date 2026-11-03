@@ -81,7 +81,7 @@ function DashboardContent() {
   const [teamName, setTeamName] = useState("");
   const [teamDesc, setTeamDesc] = useState("");
   const [teamCoupon, setTeamCoupon] = useState("");
-  const [teamCategory, setTeamCategory] = useState("ELEMENTARY");
+  const [teamCategory, setTeamCategory] = useState("JUNIOR_HIGH");
   const [inviteCode, setInviteCode] = useState(searchParams.get("inviteCode") || "");
   const [teamError, setTeamError] = useState("");
   const [teamLoading, setTeamLoading] = useState(false);

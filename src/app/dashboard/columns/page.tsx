@@ -53,7 +53,7 @@ export default function ColumnsListPage() {
 
   const columns = columnsRes?.columns || [];
   const isCoach = Boolean(columnsRes?.isCoach);
-  const teamCategory = teamRes?.team?.category || "ELEMENTARY";
+  const teamCategory = teamRes?.team?.category || "JUNIOR_HIGH";
   const members = (teamRes?.team?.members || []).filter((m: any) => m.role === "PLAYER" && !m.graduated);
   const groups = (groupsRes?.groups || []).filter((g: any) => !g.isArchived);
   const gradeOpts = gradeOptions(teamCategory);
@@ -830,7 +830,7 @@ export default function ColumnsListPage() {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="例: 【1年生向け】インコースを詰まらせずに打つ体の使い方"
+                    placeholder="タイトルを入力"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required
@@ -845,7 +845,7 @@ export default function ColumnsListPage() {
                 <textarea
                   className="form-control"
                   rows={2}
-                  placeholder="https://www.youtube.com/watch?v=... または https://youtu.be/..."
+                  placeholder="YouTubeのURLを貼り付け"
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   disabled={submitting}
@@ -920,7 +920,7 @@ export default function ColumnsListPage() {
                 <textarea
                   className="form-control"
                   rows={8}
-                  placeholder={`## 意識してほしい3つのポイント\n1. テイクバックでグリップを捕手側に引きすぎない\n2. 前の肩が早く開かないように我慢する\n\n### 練習でのチェック方法\nティー打撃で...`}
+                  placeholder="解説本文や意識してほしいポイントを入力してください"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   disabled={submitting}

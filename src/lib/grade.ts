@@ -22,14 +22,14 @@ export const CATEGORY_MAX_GRADE: Record<TeamCategory, number> = {
 };
 
 export const CATEGORY_OPTIONS: { value: TeamCategory; label: string }[] = [
-  { value: "ELEMENTARY", label: "小学生" },
   { value: "JUNIOR_HIGH", label: "中学生" },
   { value: "HIGH_SCHOOL", label: "高校生" },
+  { value: "ELEMENTARY", label: "小学生" },
 ];
 
 function normalizeCategory(category?: string | null): TeamCategory {
-  if (category === "JUNIOR_HIGH" || category === "HIGH_SCHOOL") return category;
-  return "ELEMENTARY";
+  if (category === "ELEMENTARY" || category === "JUNIOR_HIGH" || category === "HIGH_SCHOOL") return category;
+  return "JUNIOR_HIGH";
 }
 
 // 表示ラベル。例: (ELEMENTARY, 4) -> "小4", (_, 0) -> "体験", null -> ""
@@ -53,3 +53,6 @@ export function gradeOptions(category: string | null | undefined): { value: numb
 export function graduatingGrade(category: string | null | undefined): number {
   return CATEGORY_MAX_GRADE[normalizeCategory(category)];
 }
+
+export const formatGrade = gradeLabel;
+export const getGradeOptions = gradeOptions;

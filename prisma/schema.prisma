@@ -76,7 +76,9 @@ model User {
   targetedColumns  Column[]         @relation("ColumnTargetUsers")
   columnReads      ColumnRead[]
   columnBookmarks  ColumnBookmark[]
-  columnComments   ColumnComment[]  @relation("UserColumnComments")
+  columnComments      ColumnComment[]     @relation("UserColumnComments")
+  baseballNotes       BaseballNote[]
+  baseballNoteReplies BaseballNoteReply[]
 
   // アンケート回答リレーション
   pollAnswers   EventPollAnswer[]
@@ -187,7 +189,8 @@ model Team {
   events      Event[]
   groups      Group[]
   posts       Post[]
-  columns     Column[]
+  columns       Column[]
+  baseballNotes BaseballNote[]
   albums      Album[]
   conversations Conversation[]
   familyOnboardings FamilyOnboarding[]
@@ -794,4 +797,45 @@ model Message {
   
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+}
+
+
+// SKILLBASE 野球ノート（選手と指導者の交換日記・振り返り・赤ペン指導）
+model BaseballNote {
+  id            String              @id @default(uuid())
+  teamId        String
+  authorId      String
+  practiceDate  String
+  activityType  String              @default("PRACTICE")
+  condition     String              @default("GOOD")
+  painNote      String?
+  title         String
+  themeText     String
+  reviewText    String
+  goalText      String
+  videoUrl      String?
+  imageUrl      String?
+  coachStamp    String?
+  stampedByName String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  team          Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies       BaseballNoteReply[]
+
+  @@index([teamId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model BaseballNoteReply {
+  id        String       @id @default(uuid())
+  noteId    String
+  authorId  String
+  content   String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  note      BaseballNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([noteId, createdAt])
 }
