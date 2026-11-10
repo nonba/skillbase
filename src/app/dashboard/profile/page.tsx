@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
+import BaseStatsCard from "@/components/BaseStatsCard";
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
@@ -325,7 +326,10 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {!isPlayer && children.length === 0 ? (
+            {/* 選手本人: 成績の元は土台(HOMEBASE)の窓口。SKILLBASE は読んで出すだけ(下の古い表示は、保護者・指導者のため残す) */}
+            {isPlayer && <BaseStatsCard />}
+
+            {isPlayer ? null : !isPlayer && children.length === 0 ? (
               <div className="card card-glass" style={{ textAlign: "center", padding: "40px 24px", color: "var(--text-muted)" }}>
                 {profile.user.role === "MANAGER" ? (
                   <>
