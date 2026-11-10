@@ -327,83 +327,8 @@ export default function ProfilePage() {
             )}
 
             {/* 選手本人: 成績の元は土台(HOMEBASE)の窓口。SKILLBASE は読んで出すだけ(下の古い表示は、保護者・指導者のため残す) */}
-            {isPlayer && <BaseStatsCard />}
+            <BaseStatsCard />
 
-            {isPlayer ? null : !isPlayer && children.length === 0 ? (
-              <div className="card card-glass" style={{ textAlign: "center", padding: "40px 24px", color: "var(--text-muted)" }}>
-                {profile.user.role === "MANAGER" ? (
-                  <>
-                    指導者アカウントです。チーム全体の成績は以下からご確認ください。<br />
-                    <Link href="/dashboard/stats" style={{ display: "inline-block", marginTop: "12px", color: "var(--primary)", fontWeight: 600 }}>
-                      → チーム全体の成績を見る
-                    </Link>
-                  </>
-                ) : (
-                  "お子さん（選手）が紐づいていません。「基本情報」タブから紐づけてください。"
-                )}
-              </div>
-            ) : !statsRes ? (
-
-              <div className="card card-glass" style={{ textAlign: "center", padding: "40px 24px", color: "var(--text-muted)" }}>
-                読み込み中...
-              </div>
-            ) : (
-              <>
-                <div className="card card-glass">
-                  <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "12px" }}>🏏 打撃成績{targetName ? `（${targetName}）` : ""}</h3>
-                  {battingRow ? (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: "16px" }}>
-                      {[
-                        ["打率", battingRow.avg],
-                        ["打数", battingRow.atBats],
-                        ["安打", battingRow.hits],
-                        ["本塁打", battingRow.homeRuns],
-                        ["打点", battingRow.runsBattedIn],
-                        ["得点", battingRow.runs],
-                        ["盗塁", battingRow.stolenBases],
-                        ["三振", battingRow.strikeouts],
-                        ["四球", battingRow.walks],
-                      ].map(([label, value]) => (
-                        <div key={label as string} style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{label}</div>
-                          <div style={{ fontSize: "20px", fontWeight: 800 }}>{value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>まだ記録がありません。</p>
-                  )}
-                </div>
-
-                {hasPitching && (
-                  <div className="card card-glass">
-                    <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "12px" }}>⚾ 投手成績{targetName ? `（${targetName}）` : ""}</h3>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: "16px" }}>
-                      {[
-                        ["防御率", pitchingRow.era],
-                        ["投球回", pitchingRow.inningsPitched],
-                        ["奪三振", pitchingRow.strikeouts],
-                        ["与四球", pitchingRow.walksAllowed],
-                        ["失点", pitchingRow.runsAllowed],
-                        ["自責点", pitchingRow.earnedRuns],
-                        ["勝", pitchingRow.wins],
-                        ["敗", pitchingRow.losses],
-                        ["S", pitchingRow.saves],
-                      ].map(([label, value]) => (
-                        <div key={label as string} style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{label}</div>
-                          <div style={{ fontSize: "20px", fontWeight: 800 }}>{value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <Link href="/dashboard/stats" style={{ fontSize: "13px", color: "var(--primary)", fontWeight: 600 }}>
-                  → チーム全体の成績を見る
-                </Link>
-              </>
-            )}
           </div>
         );
       })()}

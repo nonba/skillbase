@@ -39,10 +39,11 @@ interface PitRow {
 interface Player {
   userId: string;
   name: string;
+  jerseyNumber?: string | null;
   batting: BatRow[];
   pitching: PitRow[];
 }
-type State = { kind: "loading" } | { kind: "unlinked" } | { kind: "error"; text: string } | { kind: "ok"; player: Player | null };
+type State = { kind: "loading" } | { kind: "unlinked" } | { kind: "error"; text: string } | { kind: "ok"; players: Player[] };
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -52,6 +53,7 @@ const innings = (outs: number) => `${Math.floor(outs / 3)}${outs % 3 ? "." + (ou
 
 export default function BaseStatsCard() {
   const [state, setState] = useState<State>({ kind: "loading" });
+  const [pick, setPick] = useState(0);
 
   useEffect(() => {
     fetch("/api/base/player-stats", { cache: "no-store" })
@@ -59,7 +61,7 @@ export default function BaseStatsCard() {
       .then(({ ok, j }) => {
         if (j.linked === false) return setState({ kind: "unlinked" });
         if (!ok || j.error) return setState({ kind: "error", text: "成績を読み込めませんでした。時間をおいて、もう一度ためしてください。" });
-        setState({ kind: "ok", player: (j.players as Player[])?.[0] ?? null });
+        setState({ kind: "ok", players: (j.players as Player[]) ?? [] });
       })
       .catch(() => setState({ kind: "error", text: "成績を読み込めませんでした。通信を確かめてください。" }));
   }, []);
@@ -85,7 +87,8 @@ export default function BaseStatsCard() {
     );
   }
 
-  const p = state.player;
+  const players = state.players;
+  const p = players[Math.min(pick, Math.max(players.length - 1, 0))] ?? null;
   const bat = p?.batting ?? [];
   const pit = p?.pitching ?? [];
   const tot = bat.reduce(
@@ -100,9 +103,18 @@ export default function BaseStatsCard() {
   return (
     <div className="card card-glass" style={box}>
       <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "4px" }}>📝 SCOREBASE の成績{p ? `（${p.name}）` : ""}</h3>
+      {players.length > 1 && (
+        <select className="input" value={Math.min(pick, players.length - 1)} onChange={(e) => setPick(Number(e.target.value))} style={{ maxWidth: "260px", marginBottom: "10px" }}>
+          {players.map((x, i) => (
+            <option key={x.userId} value={i}>{x.jerseyNumber ? `[${x.jerseyNumber}] ` : ""}{x.name}</option>
+          ))}
+        </select>
+      )}
       <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "12px" }}>見られるのは、本人・保護者・指導者だけです。成績の元は、チームの SCOREBASE の記録です。</p>
 
-      {bat.length === 0 && pit.length === 0 ? (
+      {players.length === 0 ? (
+        <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>見られる選手がいません（お子さんが、HOMEBASE のチームで、ひもづいていない可能性があります）。</p>
+      ) : bat.length === 0 && pit.length === 0 ? (
         <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>まだ、試合ごとの成績が送られていません。</p>
       ) : (
         <>

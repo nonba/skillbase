@@ -21,7 +21,7 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "login" }, { status: 401, headers });
 
-  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { name: true, baseUserId: true } });
+  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { name: true, baseUserId: true, role: true } });
   if (!user?.baseUserId) return NextResponse.json({ linked: false }, { headers });
 
   const secret = getEnv("ID_TICKET_SECRET");
@@ -30,7 +30,12 @@ export async function GET() {
 
   try {
     const ticket = await signTicket({ sub: user.baseUserId, name: user.name, teamId: null, aud: "stats-read", state: randomState() }, secret);
-    const res = await fetch(`${idBase}/api/id/player-stats`, { headers: { Authorization: `Bearer ${ticket}` }, cache: "no-store" });
+    // 見る範囲を、役割で決める(最終的な判定は、土台がやる。権限がなければ 403 → 自分の分に戻す)
+    // 指導者(MANAGER)=チームの選手みんな / 保護者(PARENT)=ひもづけた子ども / 選手=自分
+    const query = user.role === "MANAGER" ? "?all=1" : user.role === "PARENT" ? "?scope=children" : "";
+    const call = (q: string) => fetch(`${idBase}/api/id/player-stats${q}`, { headers: { Authorization: `Bearer ${ticket}` }, cache: "no-store" });
+    let res = await call(query);
+    if (res.status === 403 && query) res = await call("");
     if (!res.ok) {
       const j = (await res.json().catch(() => ({}))) as { error?: string };
       return NextResponse.json({ linked: true, error: j.error ?? "unavailable" }, { status: res.status === 403 ? 200 : 502, headers });
