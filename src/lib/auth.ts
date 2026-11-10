@@ -123,13 +123,17 @@ export const authOptions: NextAuthOptions = {
       credentials: { ticket: { label: "Ticket", type: "text" }, state: { label: "State", type: "text" } },
       async authorize(credentials, req) {
         const secret = getEnv("ID_TICKET_SECRET");
-        if (!credentials?.ticket || !credentials?.state || secret.length < 32) throw new Error("BASE_LOGIN_FAILED");
-        const cookie = String((req as any)?.headers?.cookie ?? (req as any)?.headers?.get?.("cookie") ?? "");
-        const m = /(?:^|;s*)base_state=([A-Za-z0-9_-]{16,128})/.exec(cookie);
-        const claims = await verifyTicket(credentials.ticket, secret, "skillbase");
-        if (!claims || !m || m[1] !== credentials.state || claims.state !== credentials.state || !credentials.state.startsWith("s-")) {
+        if (!credentials?.ticket || !credentials?.state || secret.length < 32) {
           throw new Error("BASE_LOGIN_FAILED");
         }
+        const cookie = String((req as any)?.headers?.cookie ?? (req as any)?.headers?.get?.("cookie") ?? "");
+        const m = /(?:^|;\s*)base_state=([A-Za-z0-9_-]{16,128})/.exec(cookie);
+        const claims = await verifyTicket(credentials.ticket, secret, "skillbase");
+        // 断った理由の種類を、記号で返す(通行証・合言葉の中身は返さない)
+        if (!claims) throw new Error("BASE_LOGIN_FAILED_TICKET");
+        if (!m) throw new Error("BASE_LOGIN_FAILED_NOCOOKIE");
+        if (m[1] !== credentials.state || claims.state !== credentials.state) throw new Error("BASE_LOGIN_FAILED_STATE");
+        if (!credentials.state.startsWith("s-")) throw new Error("BASE_LOGIN_FAILED_MODE");
         const user = await db.user.findUnique({ where: { baseUserId: claims.sub } });
         if (!user) throw new Error("BASE_NOT_LINKED");
         if (user.emailVerificationToken) throw new Error(EMAIL_NOT_VERIFIED_ERROR);

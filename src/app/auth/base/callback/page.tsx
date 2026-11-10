@@ -20,6 +20,7 @@ function Inner() {
   const params = useSearchParams();
   const [message, setMessage] = useState("確認しています…");
   const [done, setDone] = useState(false);
+  const [code, setCode] = useState("");
 
   useEffect(() => {
     const ticket = params.get("ticket") ?? "";
@@ -46,6 +47,7 @@ function Inner() {
       }
       const r = await signIn("base-ticket", { redirect: false, ticket, state: claimsState });
       if (r?.error) {
+        setCode(r.error);
         setMessage(MESSAGES[r.error] ?? MESSAGES.BASE_LOGIN_FAILED);
         return;
       }
@@ -57,6 +59,7 @@ function Inner() {
     <div style={{ maxWidth: 440, margin: "80px auto", padding: 20, textAlign: "center" }}>
       <h1 style={{ fontSize: 18, fontWeight: 800, marginBottom: 12 }}>BASE アカウント</h1>
       <p style={{ fontSize: 14, lineHeight: 1.7, color: done ? "#047857" : "#334155" }}>{message}</p>
+      {code && <p style={{ marginTop: 8, fontSize: 11, color: "#94a3b8" }}>（確認用の記号: {code}）</p>}
       {!done && message !== "確認しています…" && (
         <p style={{ marginTop: 16 }}>
           <a href="/login" style={{ color: "#1d4ed8", fontWeight: 700 }}>ログイン画面へ</a>
