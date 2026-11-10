@@ -43,7 +43,7 @@ interface Player {
   batting: BatRow[];
   pitching: PitRow[];
 }
-type State = { kind: "loading" } | { kind: "unlinked" } | { kind: "error"; text: string } | { kind: "ok"; players: Player[] };
+type State = { kind: "loading" } | { kind: "unlinked" } | { kind: "hidden" } | { kind: "error"; text: string } | { kind: "ok"; players: Player[] };
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -60,6 +60,7 @@ export default function BaseStatsCard() {
       .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
       .then(({ ok, j }) => {
         if (j.linked === false) return setState({ kind: "unlinked" });
+        if (j.hidden) return setState({ kind: "hidden" });
         if (!ok || j.error) return setState({ kind: "error", text: "成績を読み込めませんでした。時間をおいて、もう一度ためしてください。" });
         setState({ kind: "ok", players: (j.players as Player[]) ?? [] });
       })
@@ -69,6 +70,14 @@ export default function BaseStatsCard() {
   if (state.kind === "loading") return null;
   const box = { padding: "16px" } as const;
 
+  if (state.kind === "hidden") {
+    return (
+      <div className="card card-glass" style={box}>
+        <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "8px" }}>📝 SCOREBASE の成績</h3>
+        <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>選手の成績は、いまは、保護者と指導者が見られます。</p>
+      </div>
+    );
+  }
   if (state.kind === "unlinked") {
     return (
       <div className="card card-glass" style={box}>

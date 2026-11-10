@@ -11,6 +11,9 @@ import { signTicket } from "@/lib/baseTicket";
 // 成績は、土台が正。SKILLBASE は、読んで出すだけ(保存しない)。
 // ※ 保護者→子ども、指導者→チーム全員は、まだ(土台に親子の関係の窓口がない)。
 
+// 選手本人(小学生を含む)が、自分の成績を、SKILLBASE で見てよいか。オーナー決定(2026-11-11): 最初は、保護者と指導者だけ。あとで true にすれば、本人にも出る。
+const PLAYER_CAN_VIEW_OWN = false;
+
 function randomState(): string {
   const b = crypto.getRandomValues(new Uint8Array(24));
   return "srv-" + Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
@@ -23,6 +26,7 @@ export async function GET() {
 
   const user = await db.user.findUnique({ where: { id: session.user.id }, select: { name: true, baseUserId: true, role: true } });
   if (!user?.baseUserId) return NextResponse.json({ linked: false }, { headers });
+  if (user.role === "PLAYER" && !PLAYER_CAN_VIEW_OWN) return NextResponse.json({ linked: true, hidden: true }, { headers });
 
   const secret = getEnv("ID_TICKET_SECRET");
   const idBase = getEnv("BASE_ID_URL").replace(/\/$/, "");
