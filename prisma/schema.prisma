@@ -20,6 +20,8 @@ model User {
   email         String   @unique
   name          String
   password      String
+  // BASE アカウント(HOMEBASE=土台)の User.id。結ぶのは本人が、土台のログインを確かめたときだけ(自動では結ばない)。
+  baseUserId    String?  @unique
   role          String   @default("PLAYER") // "MANAGER" or "PLAYER" or "PARENT"
 
   emailVerifiedAt        DateTime?

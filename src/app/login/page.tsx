@@ -220,6 +220,14 @@ function LoginForm() {
         </button>
       </form>
 
+      <a
+        href="/api/auth/base/start?mode=login"
+        className="btn btn-secondary"
+        style={{ width: "100%", display: "block", textAlign: "center", textDecoration: "none", marginTop: "10px", height: "44px", lineHeight: "44px", fontWeight: 700 }}
+      >
+        🔑 BASE アカウントでログイン
+      </a>
+
       {!isNativeApp() && (
         <>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "24px 0" }}>

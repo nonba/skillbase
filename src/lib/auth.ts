@@ -4,6 +4,7 @@ import { db } from "./db";
 import bcrypt from "bcryptjs";
 import { getEnv } from "./env";
 import { EMAIL_NOT_VERIFIED_ERROR } from "./authMessages";
+import { verifyTicket } from "./baseTicket";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -112,7 +113,42 @@ export const authOptions: NextAuthOptions = {
           graduated: user.graduated,
         };
       }
-    })
+    }),
+    // 「BASE アカウントでログイン」(試作・2026-11-11): 土台(HOMEBASE)が発行した、短い期限の署名つき通行証で、ログインする。
+    // 通行証の署名・宛先(skillbase)・期限と、ログインを始めたときの合言葉(state。この端末のクッキーと同じか)を確かめる。
+    // すでに SKILLBASE のユーザーが、本人の操作で結んである(baseUserId)人だけが入れる。自動では結ばない。
+    CredentialsProvider({
+      id: "base-ticket",
+      name: "BASE Account",
+      credentials: { ticket: { label: "Ticket", type: "text" }, state: { label: "State", type: "text" } },
+      async authorize(credentials, req) {
+        const secret = getEnv("ID_TICKET_SECRET");
+        if (!credentials?.ticket || !credentials?.state || secret.length < 32) throw new Error("BASE_LOGIN_FAILED");
+        const cookie = String((req as any)?.headers?.cookie ?? (req as any)?.headers?.get?.("cookie") ?? "");
+        const m = /(?:^|;s*)base_state=([A-Za-z0-9_-]{16,128})/.exec(cookie);
+        const claims = await verifyTicket(credentials.ticket, secret, "skillbase");
+        if (!claims || !m || m[1] !== credentials.state || claims.state !== credentials.state || !credentials.state.startsWith("s-")) {
+          throw new Error("BASE_LOGIN_FAILED");
+        }
+        const user = await db.user.findUnique({ where: { baseUserId: claims.sub } });
+        if (!user) throw new Error("BASE_NOT_LINKED");
+        if (user.emailVerificationToken) throw new Error(EMAIL_NOT_VERIFIED_ERROR);
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          teamId: user.teamId,
+          isOwner: user.isOwner,
+          canManageSchedule: user.canManageSchedule,
+          canManageUsers: user.canManageUsers,
+          canManagePosts: user.canManagePosts,
+          canManageScore: user.canManageScore,
+          requiresPasswordChange: user.requiresPasswordChange,
+          graduated: user.graduated,
+        };
+      },
+    }),
   ],
   callbacks: {
     // ログイン後のリダイレクト先を確実に本番URLに向ける。
