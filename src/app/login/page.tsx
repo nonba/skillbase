@@ -223,7 +223,7 @@ function LoginForm() {
       <a
         href="/api/auth/base/start?mode=login"
         className="btn btn-secondary"
-        style={{ width: "100%", display: "block", textAlign: "center", textDecoration: "none", marginTop: "10px", height: "44px", lineHeight: "44px", fontWeight: 700 }}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", textDecoration: "none", marginTop: "10px", height: "48px", padding: "0 16px", fontWeight: 700 }}
       >
         🔑 BASE アカウントでログイン
       </a>
