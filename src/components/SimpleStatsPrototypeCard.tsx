@@ -141,7 +141,6 @@ export default function SimpleStatsPrototypeCard({
   rosterPlayers?: RosterPlayerItem[];
 }) {
   const [useStats, setUseStats] = useState<boolean>(true);
-  const [inputMode, setInputMode] = useState<"bulk" | "single">("bulk");
   const [showColumnPicker, setShowColumnPicker] = useState<boolean>(false);
   const [selectedKeys, setSelectedKeys] = useState<StatKey[]>(BASIC_6_KEYS);
 
@@ -343,45 +342,14 @@ export default function SimpleStatsPrototypeCard({
       ) : (
         <>
           <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "14px", lineHeight: 1.6 }}>
-            使う項目だけをテンプレート＋チェックで選んで、<strong>「📋 Excel風にチーム全員を一括入力」</strong>または<strong>「👤 1人ずつじっくり入力」</strong>ができます。
+            使う項目だけをテンプレート＋チェックで選んで、<strong>Excel風の表から1人でもチーム全員でもそのまま入力</strong>できます。
             （※窓口の分離・チームの核の共通化後に BASE 共通DB <code>source: SKILLBASE_SIMPLE</code> へ保存されます）
           </p>
 
-          {/* 入力モード切り替え ＆ 項目カスタマイズ開閉 */}
+          {/* 項目カスタマイズ開閉 */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
-            <div style={{ display: "flex", gap: "6px" }}>
-              <button
-                type="button"
-                onClick={() => setInputMode("bulk")}
-                style={{
-                  padding: "7px 14px",
-                  fontSize: "12px",
-                  fontWeight: 800,
-                  borderRadius: "8px",
-                  border: inputMode === "bulk" ? "1px solid var(--primary)" : "1px solid var(--border)",
-                  background: inputMode === "bulk" ? "rgba(255, 107, 0, 0.12)" : "transparent",
-                  color: inputMode === "bulk" ? "var(--primary)" : "var(--text-muted)",
-                  cursor: "pointer",
-                }}
-              >
-                📋 チーム一括入力（Excel風）
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("single")}
-                style={{
-                  padding: "7px 14px",
-                  fontSize: "12px",
-                  fontWeight: 800,
-                  borderRadius: "8px",
-                  border: inputMode === "single" ? "1px solid var(--primary)" : "1px solid var(--border)",
-                  background: inputMode === "single" ? "rgba(255, 107, 0, 0.12)" : "transparent",
-                  color: inputMode === "single" ? "var(--primary)" : "var(--text-muted)",
-                  cursor: "pointer",
-                }}
-              >
-                👤 1人ずつじっくり入力
-              </button>
+            <div style={{ fontSize: "13px", fontWeight: 800 }}>
+              📋 試合ごとの成績入力シート
             </div>
 
             <button
@@ -553,9 +521,8 @@ export default function SimpleStatsPrototypeCard({
             </div>
           </div>
 
-          {/* モードA: Excel風チーム一括入力 */}
-          {inputMode === "bulk" ? (
-            <form onSubmit={handleSaveBulk}>
+          {/* Excel風チーム一括入力 */}
+          <form onSubmit={handleSaveBulk}>
               <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: "10px", marginBottom: "12px" }}>
                 <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "12px" }}>
                   <thead>
@@ -700,106 +667,10 @@ export default function SimpleStatsPrototypeCard({
                   💡 Tabキーで右のセルへ連続入力できます（空欄は自動で 0 扱い、入力がある選手だけ保存されます）
                 </span>
                 <button type="submit" className="btn btn-primary" style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 800 }}>
-                  ＋ この試合の成績をまとめて追加（試作）
+                  ＋ この試合の成績を追加（試作）
                 </button>
               </div>
-            </form>
-          ) : (
-            /* モードB: 1人ずつじっくり入力 */
-            <form
-              onSubmit={handleSaveSingle}
-              style={{
-                background: "rgba(0,0,0,0.02)",
-                padding: "14px",
-                borderRadius: "10px",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 700 }}>対象の選手:</label>
-                  <select
-                    className="input"
-                    value={singlePlayerId}
-                    onChange={(e) => setSinglePlayerId(e.target.value)}
-                    style={{ width: "auto", minWidth: "180px" }}
-                  >
-                    {effectivePlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.jerseyNumber ? `[#${p.jerseyNumber}] ` : ""}
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {(() => {
-                  const sum = calcRowSummary(singleValues);
-                  return (
-                    <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      この試合の自動計算: 打率 <strong>{sum.avg}</strong> / OPS <strong>{sum.ops}</strong>
-                      {sum.ip !== "-" && ` / 投球回 ${sum.ip}`}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {(
-                [
-                  ["batting", "⚾ 打撃"],
-                  ["running", "🏃 走塁"],
-                  ["pitching", "🎯 投手"],
-                ] as [StatCategory, string][]
-              ).map(([cat, title]) => {
-                const catFields = activeFields.filter((f) => f.category === cat);
-                if (catFields.length === 0) return null;
-                return (
-                  <div key={cat} style={{ marginBottom: "14px" }}>
-                    <div style={{ fontSize: "12px", fontWeight: 800, marginBottom: "6px" }}>{title}</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(92px, 1fr))", gap: "8px" }}>
-                      {catFields.map((f) => (
-                        <div key={f.key} style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                          <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }} title={f.hint}>
-                            {f.label}
-                          </label>
-                          {f.key === "pit_thirds" ? (
-                            <select
-                              className="input"
-                              value={singleValues.pit_thirds}
-                              onChange={(e) => updateSingleCell("pit_thirds", Number(e.target.value))}
-                              style={{ padding: "6px 4px", fontSize: "13px", textAlign: "center" }}
-                            >
-                              <option value={0}>.0</option>
-                              <option value={1}>1/3 (.1)</option>
-                              <option value={2}>2/3 (.2)</option>
-                            </select>
-                          ) : (
-                            <input
-                              type="number"
-                              min={0}
-                              max={999}
-                              className="input"
-                              value={singleValues[f.key] === 0 ? "" : singleValues[f.key]}
-                              placeholder="0"
-                              onFocus={(e) => e.currentTarget.select()}
-                              onChange={(e) =>
-                                updateSingleCell(f.key, e.target.value === "" ? 0 : Number(e.target.value))
-                              }
-                              style={{ padding: "6px 8px", fontSize: "14px", textAlign: "center", fontWeight: singleValues[f.key] > 0 ? 800 : 400 }}
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button type="submit" className="btn btn-primary" style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 800 }}>
-                  ＋ この選手の試合結果を追加（試作）
-                </button>
-              </div>
-            </form>
-          )}
+          </form>
 
           {/* 追加された試合ごとの成績プレビュー */}
           {entries.length > 0 && (

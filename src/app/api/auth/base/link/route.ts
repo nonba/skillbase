@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getEnv } from "@/lib/env";
+import { getIdTicketSecret } from "@/lib/env";
 import { verifyTicket } from "@/lib/baseTicket";
 
 // SKILLBASE にログイン中の人を、BASE アカウントと結ぶ(試作・2026-11-11)。自動では結ばない。
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const ticket = typeof body?.ticket === "string" ? body.ticket : "";
   const state = typeof body?.state === "string" ? body.state : "";
-  const secret = getEnv("ID_TICKET_SECRET");
+  const secret = getIdTicketSecret();
   const jar = await cookies();
   const cookieState = jar.get("base_state")?.value ?? "";
   const claims = secret.length >= 32 ? await verifyTicket(ticket, secret, "skillbase") : null;

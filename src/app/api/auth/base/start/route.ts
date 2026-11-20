@@ -14,7 +14,7 @@ function randomState(prefix: "s-" | "l-"): string {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const mode = url.searchParams.get("mode") === "link" ? "link" : "login";
-  const idBase = getBaseIdUrl();
+  const idBase = getBaseIdUrl(url.origin);
   if (!/^https?:\/\//.test(idBase)) return NextResponse.json({ error: "unavailable" }, { status: 503 });
 
   const state = randomState(mode === "link" ? "l-" : "s-");

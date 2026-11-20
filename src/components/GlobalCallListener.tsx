@@ -324,43 +324,8 @@ export default function GlobalCallListener() {
     }
   }, [activeCall]);
 
-  const isDev = process.env.NODE_ENV === "development";
-
   return (
     <>
-      {/* デバッグコンソール：開発環境のみ表示 */}
-      {isDev && (
-        <div style={{
-          position: "fixed",
-          top: "10px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "rgba(0, 0, 0, 0.85)",
-          color: "#00ffcc",
-          padding: "10px 16px",
-          borderRadius: "8px",
-          fontSize: "11px",
-          fontFamily: "monospace",
-          zIndex: 99999,
-          maxWidth: "90%",
-          width: "360px",
-          pointerEvents: "none",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-          border: "1px solid #00ffcc"
-        }}>
-          <div style={{ fontWeight: "bold", borderBottom: "1px solid #00ffcc", paddingBottom: "4px", marginBottom: "4px" }}>
-            📡 SKILLBASE REALTIME DEBUGGER
-          </div>
-          {debugLogs.length === 0 ? (
-            <div style={{ color: "#aaa" }}>ログなし (操作を待機中)</div>
-          ) : (
-            debugLogs.map((log, idx) => (
-              <div key={idx} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{log}</div>
-            ))
-          )}
-        </div>
-      )}
-
       {activeCall && session?.user && (
         <CallOverlay
           conversationId={conversationId}

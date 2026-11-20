@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getBaseIdUrl, getEnv } from "@/lib/env";
+import { getBaseIdUrl, getIdTicketSecret } from "@/lib/env";
 import { signTicket } from "@/lib/baseTicket";
 
 // BASE 共有の成績データベース（base-stats / base-games）を、窓口（BASE_ID_URL）経由で読んで返す（2026-11-20 更新）。
@@ -34,13 +34,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ linked: true, hidden: true }, { headers });
   }
 
-  const secret = getEnv("ID_TICKET_SECRET");
-  const idBase = getBaseIdUrl();
+  const reqUrl = new URL(req.url);
+  const secret = getIdTicketSecret();
+  const idBase = getBaseIdUrl(reqUrl.origin);
   if (secret.length < 32 || !/^https?:\/\//.test(idBase)) {
     return NextResponse.json({ linked: true, error: "unavailable" }, { status: 503, headers });
   }
 
-  const reqUrl = new URL(req.url);
   const requestedScope = reqUrl.searchParams.get("scope") as Scope | null;
   const from = reqUrl.searchParams.get("from") ?? "";
   const to = reqUrl.searchParams.get("to") ?? "";
@@ -149,6 +149,7 @@ export async function GET(req: Request) {
         {
           linked: true,
           source: "base-stats",
+          role: user.role,
           scope: activeScope,
           players: (firstBody.players as unknown[]) ?? [],
           batting: (firstBody.batting as unknown[]) ?? [],
@@ -187,6 +188,7 @@ export async function GET(req: Request) {
       {
         linked: true,
         source: "player-stats",
+        role: user.role,
         scope: legacyQuery === "?all=1" ? "team" : legacyQuery === "?scope=children" ? "children" : "self",
         players: j.players ?? [],
       },

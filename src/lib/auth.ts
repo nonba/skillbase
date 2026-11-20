@@ -2,7 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
-import { getEnv } from "./env";
+import { getEnv, getIdTicketSecret } from "./env";
 import { EMAIL_NOT_VERIFIED_ERROR } from "./authMessages";
 import { verifyTicket } from "./baseTicket";
 
@@ -122,7 +122,7 @@ export const authOptions: NextAuthOptions = {
       name: "BASE Account",
       credentials: { ticket: { label: "Ticket", type: "text" }, state: { label: "State", type: "text" } },
       async authorize(credentials, req) {
-        const secret = getEnv("ID_TICKET_SECRET");
+        const secret = getIdTicketSecret();
         if (!credentials?.ticket || !credentials?.state || secret.length < 32) {
           throw new Error("BASE_LOGIN_FAILED");
         }

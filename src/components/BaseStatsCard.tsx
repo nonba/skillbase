@@ -158,6 +158,7 @@ const fmtDate = (iso: string | null) => {
 
 export default function BaseStatsCard() {
   const [state, setState] = useState<CardState>({ kind: "loading" });
+  const [viewerRole, setViewerRole] = useState<string>("PLAYER");
   const [scope, setScope] = useState<Scope | "">("");
   const [kindFilter, setKindFilter] = useState<KindFilter>("");
   const [subTab, setSubTab] = useState<SubTab>("batting");
@@ -183,6 +184,7 @@ export default function BaseStatsCard() {
             text: "成績を読み込めませんでした。時間をおいて、もう一度ためしてください。",
           });
         }
+        if (typeof j.role === "string") setViewerRole(j.role);
         const resolvedScope: Scope = j.scope ?? (targetScope || "self");
         if (!targetScope) setScope(resolvedScope);
 
@@ -261,17 +263,31 @@ export default function BaseStatsCard() {
     );
   }
 
+  // ログイン中の立場（role）に合わせて意味のある範囲ボタンだけを出す:
+  // ・PLAYER（選手本人）: 「自分の成績」「チーム全体」（お子さんは出さない）
+  // ・PARENT（保護者）: 「お子さんの成績」「チーム全体」（自分は出さない）
+  // ・MANAGER（指導者）: 「チーム全体」「お子さん」（自分は出さない）
+  const scopeOptions: [Scope, string][] =
+    viewerRole === "PLAYER"
+      ? [
+          ["self", "自分の成績"],
+          ["team", "チーム全体"],
+        ]
+      : viewerRole === "PARENT"
+        ? [
+            ["children", "お子さんの成績"],
+            ["team", "チーム全体"],
+          ]
+        : [
+            ["team", "チーム全体"],
+            ["children", "お子さんの成績"],
+          ];
+
   const scopeBar = (
     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginBottom: "12px" }}>
       <div style={{ display: "flex", gap: "4px", background: "rgba(0,0,0,0.04)", padding: "3px", borderRadius: "8px" }}>
-        {(
-          [
-            ["self", "自分"],
-            ["children", "お子さん"],
-            ["team", "チーム全体"],
-          ] as [Scope, string][]
-        ).map(([sc, label]) => {
-          const active = (scope || "self") === sc;
+        {scopeOptions.map(([sc, label]) => {
+          const active = (scope || scopeOptions[0][0]) === sc;
           return (
             <button
               key={sc}
