@@ -1,205 +1,306 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // SKILLBASE 単独チーム向け「成績を使う・使わない」選択 ＆ 試合ごとの個人結果の簡易入力（画面試作・2026-11-20）。
-// ※ 窓口の分離（NEXT_PREP_DESIGNS ①）とチームの核の共通化（BASE_ID_DESIGN 2.7）が決まるまでは、
-//   サーバー・DB への書き込みは行わず、画面の使い勝手と項目粒度の確認用プロトタイプとして動作する。
+// オーナー要望(2026-11-20):
+// ・「📋 チーム一括入力（Excel風テーブル）」と「👤 1人じっくり入力」の両方に対応。
+// ・現状の集計・分析（base-stats: 打撃・走塁・投球）に絡む項目を網羅し、その中から「使う項目」をチェックボックスで自由に選べる。
+// ・テンプレートとして「基本6項目（打数・安打・本塁打・打点・得点・盗塁）」等を用意し、ワンタップで切り替え＋個別チェック追加が可能。
 
-interface SimpleGameRecord {
+export type StatCategory = "batting" | "running" | "pitching";
+
+export interface StatFieldDef {
+  key: StatKey;
+  label: string;
+  shortLabel: string;
+  category: StatCategory;
+  basic6?: boolean;
+  standardBatRun?: boolean;
+  hint?: string;
+}
+
+export type StatKey =
+  // 打撃 (14)
+  | "pa"
+  | "ab"
+  | "hits"
+  | "doubles"
+  | "triples"
+  | "hr"
+  | "rbi"
+  | "bb"
+  | "hbp"
+  | "so"
+  | "sh"
+  | "sf"
+  | "risp_ab"
+  | "risp_hits"
+  // 走塁 (9)
+  | "runs"
+  | "sb"
+  | "cs"
+  | "po"
+  | "adv_wp"
+  | "xbt_opp"
+  | "xbt_ok"
+  | "tag_opp"
+  | "tag_ok"
+  // 投手 (13)
+  | "pit_innings"
+  | "pit_thirds"
+  | "pitches"
+  | "batters"
+  | "pit_hits"
+  | "pit_hr"
+  | "pit_so"
+  | "pit_bb"
+  | "pit_hbp"
+  | "pit_runs"
+  | "pit_earned"
+  | "wp"
+  | "balk";
+
+export const ALL_STAT_FIELDS: StatFieldDef[] = [
+  // ⚾ 打撃（base-stats.batting_game 対応）
+  { key: "ab", label: "打数", shortLabel: "打数", category: "batting", basic6: true, standardBatRun: true },
+  { key: "hits", label: "安打", shortLabel: "安打", category: "batting", basic6: true, standardBatRun: true },
+  { key: "hr", label: "本塁打", shortLabel: "本塁打", category: "batting", basic6: true, standardBatRun: true },
+  { key: "rbi", label: "打点", shortLabel: "打点", category: "batting", basic6: true, standardBatRun: true },
+  { key: "pa", label: "打席", shortLabel: "打席", category: "batting", standardBatRun: true, hint: "未入力なら打数+四死球+犠打飛から自動計算" },
+  { key: "doubles", label: "二塁打", shortLabel: "二塁打", category: "batting", standardBatRun: true, hint: "長打率・OPS計算に使用" },
+  { key: "triples", label: "三塁打", shortLabel: "三塁打", category: "batting", standardBatRun: true, hint: "長打率・OPS計算に使用" },
+  { key: "bb", label: "四球", shortLabel: "四球", category: "batting", standardBatRun: true, hint: "出塁率・選球眼分析に使用" },
+  { key: "hbp", label: "死球", shortLabel: "死球", category: "batting", standardBatRun: true, hint: "出塁率計算に使用" },
+  { key: "so", label: "三振", shortLabel: "三振", category: "batting", standardBatRun: true, hint: "三振率・コンタクト率分析に使用" },
+  { key: "sh", label: "犠打", shortLabel: "犠打", category: "batting", standardBatRun: true },
+  { key: "sf", label: "犠飛", shortLabel: "犠飛", category: "batting", standardBatRun: true, hint: "出塁率の分母に使用" },
+  { key: "risp_ab", label: "得点圏打数", shortLabel: "得点圏打", category: "batting", standardBatRun: true, hint: "得点圏打率の分析に使用" },
+  { key: "risp_hits", label: "得点圏安打", shortLabel: "得点圏安", category: "batting", standardBatRun: true, hint: "得点圏打率の分析に使用" },
+
+  // 🏃 走塁（base-stats.running_game 対応）
+  { key: "runs", label: "得点", shortLabel: "得点", category: "running", basic6: true, standardBatRun: true, hint: "生還率計算にも使用" },
+  { key: "sb", label: "盗塁", shortLabel: "盗塁", category: "running", basic6: true, standardBatRun: true },
+  { key: "cs", label: "盗塁死", shortLabel: "盗塁死", category: "running", standardBatRun: true, hint: "盗塁成功率の計算に使用" },
+  { key: "po", label: "牽制死", shortLabel: "牽制死", category: "running" },
+  { key: "adv_wp", label: "暴投/捕逸進塁", shortLabel: "WP進塁", category: "running" },
+  { key: "xbt_opp", label: "余分進塁機会", shortLabel: "余分機会", category: "running", hint: "単打で1→3塁・2→本塁などの機会数" },
+  { key: "xbt_ok", label: "余分進塁成功", shortLabel: "余分成功", category: "running", hint: "余分進塁率の分析に使用" },
+  { key: "tag_opp", label: "タッチアップ機会", shortLabel: "TU機会", category: "running", hint: "0・1死3塁での外野フライ機会" },
+  { key: "tag_ok", label: "タッチアップ生還", shortLabel: "TU成功", category: "running", hint: "タッチアップ成功率に使用" },
+
+  // 🎯 投手（base-stats.pitching_game 対応）
+  { key: "pit_innings", label: "投球回(整数)", shortLabel: "投球回", category: "pitching" },
+  { key: "pit_thirds", label: "端数(.0/.1/.2)", shortLabel: "端数", category: "pitching", hint: "0=.0 / 1=1/3 / 2=2/3" },
+  { key: "pitches", label: "球数", shortLabel: "球数", category: "pitching", hint: "1回あたり球数の分析に使用" },
+  { key: "batters", label: "対戦打者", shortLabel: "打者", category: "pitching" },
+  { key: "pit_hits", label: "被安打", shortLabel: "被安打", category: "pitching", hint: "WHIP・被打率に使用" },
+  { key: "pit_hr", label: "被本塁打", shortLabel: "被本", category: "pitching" },
+  { key: "pit_so", label: "奪三振", shortLabel: "奪三振", category: "pitching", hint: "奪三振率に使用" },
+  { key: "pit_bb", label: "与四球", shortLabel: "与四球", category: "pitching", hint: "WHIP・制球分析に使用" },
+  { key: "pit_hbp", label: "与死球", shortLabel: "与死球", category: "pitching" },
+  { key: "pit_runs", label: "失点", shortLabel: "失点", category: "pitching" },
+  { key: "pit_earned", label: "自責点", shortLabel: "自責点", category: "pitching", hint: "防御率の計算に使用" },
+  { key: "wp", label: "暴投", shortLabel: "暴投", category: "pitching" },
+  { key: "balk", label: "ボーク", shortLabel: "ボーク", category: "pitching" },
+];
+
+export const BASIC_6_KEYS: StatKey[] = ALL_STAT_FIELDS.filter((f) => f.basic6).map((f) => f.key);
+export const STANDARD_BAT_RUN_KEYS: StatKey[] = ALL_STAT_FIELDS.filter((f) => f.standardBatRun).map((f) => f.key);
+export const ALL_KEYS: StatKey[] = ALL_STAT_FIELDS.map((f) => f.key);
+
+export type PlayerStatValues = Record<StatKey, number>;
+
+export const emptyStatValues = (): PlayerStatValues =>
+  Object.fromEntries(ALL_KEYS.map((k) => [k, 0])) as PlayerStatValues;
+
+export interface RosterPlayerItem {
+  id: string;
+  name: string;
+  jerseyNumber?: string | null;
+}
+
+interface SavedSimpleEntry {
   id: string;
   gameDate: string;
   opponentName: string;
   kind: "OFFICIAL" | "PRACTICE";
   tournament: string;
-  myRuns: string;
-  oppRuns: string;
-  // 打撃（基本）
-  pa: number;
-  ab: number;
-  hits: number;
-  doubles: number;
-  triples: number;
-  hr: number;
-  rbi: number;
-  bb: number;
-  hbp: number;
-  so: number;
-  sh: number;
-  sf: number;
-  // 走塁
-  runs: number;
-  sb: number;
-  cs: number;
-  // 投球
-  pitchedInnings: number;
-  pitchedThirds: 0 | 1 | 2;
-  pitches: number;
-  pitHits: number;
-  pitSo: number;
-  pitBb: number;
-  pitRuns: number;
-  pitEarned: number;
+  playerId: string;
+  playerName: string;
+  jerseyNumber?: string | null;
+  values: PlayerStatValues;
   source: "SKILLBASE_SIMPLE";
 }
 
-export default function SimpleStatsPrototypeCard({ playerName }: { playerName?: string }) {
+export default function SimpleStatsPrototypeCard({
+  playerName,
+  rosterPlayers = [],
+}: {
+  playerName?: string;
+  rosterPlayers?: RosterPlayerItem[];
+}) {
   const [useStats, setUseStats] = useState<boolean>(true);
-  const [showForm, setShowForm] = useState<boolean>(false);
-  const [showDetailBat, setShowDetailBat] = useState<boolean>(false);
-  const [showPitching, setShowPitching] = useState<boolean>(false);
-  const [records, setRecords] = useState<SimpleGameRecord[]>([]);
+  const [inputMode, setInputMode] = useState<"bulk" | "single">("bulk");
+  const [showColumnPicker, setShowColumnPicker] = useState<boolean>(false);
+  const [selectedKeys, setSelectedKeys] = useState<StatKey[]>(BASIC_6_KEYS);
+
+  const effectivePlayers: RosterPlayerItem[] =
+    rosterPlayers.length > 0
+      ? rosterPlayers
+      : [
+          { id: "p1", name: playerName || "山田 太郎", jerseyNumber: "1" },
+          { id: "p2", name: "佐藤 健太", jerseyNumber: "6" },
+          { id: "p3", name: "鈴木 翔太", jerseyNumber: "10" },
+          { id: "p4", name: "高橋 蓮", jerseyNumber: "18" },
+        ];
 
   const today = new Date().toISOString().slice(0, 10);
   const [gameDate, setGameDate] = useState(today);
   const [opponentName, setOpponentName] = useState("");
   const [kind, setKind] = useState<"OFFICIAL" | "PRACTICE">("PRACTICE");
   const [tournament, setTournament] = useState("");
-  const [myRuns, setMyRuns] = useState("");
-  const [oppRuns, setOppRuns] = useState("");
 
-  // 打撃
-  const [pa, setPa] = useState(0);
-  const [ab, setAb] = useState(0);
-  const [hits, setHits] = useState(0);
-  const [doubles, setDoubles] = useState(0);
-  const [triples, setTriples] = useState(0);
-  const [hr, setHr] = useState(0);
-  const [rbi, setRbi] = useState(0);
-  const [bb, setBb] = useState(0);
-  const [hbp, setHbp] = useState(0);
-  const [so, setSo] = useState(0);
-  const [sh, setSh] = useState(0);
-  const [sf, setSf] = useState(0);
+  // 一括入力用: playerId -> PlayerStatValues
+  const [gridValues, setGridValues] = useState<Record<string, PlayerStatValues>>({});
+  // 個人入力用
+  const [singlePlayerId, setSinglePlayerId] = useState<string>(effectivePlayers[0]?.id || "p1");
+  const [singleValues, setSingleValues] = useState<PlayerStatValues>(emptyStatValues);
 
-  // 走塁
-  const [runs, setRuns] = useState(0);
-  const [sb, setSb] = useState(0);
-  const [cs, setCs] = useState(0);
+  // 保存済みプレビュー行
+  const [entries, setEntries] = useState<SavedSimpleEntry[]>([]);
 
-  // 投手
-  const [pitchedInnings, setPitchedInnings] = useState(0);
-  const [pitchedThirds, setPitchedThirds] = useState<0 | 1 | 2>(0);
-  const [pitches, setPitches] = useState(0);
-  const [pitHits, setPitHits] = useState(0);
-  const [pitSo, setPitSo] = useState(0);
-  const [pitBb, setPitBb] = useState(0);
-  const [pitRuns, setPitRuns] = useState(0);
-  const [pitEarned, setPitEarned] = useState(0);
+  useEffect(() => {
+    setGridValues((prev) => {
+      const next = { ...prev };
+      for (const p of effectivePlayers) {
+        if (!next[p.id]) next[p.id] = emptyStatValues();
+      }
+      return next;
+    });
+    if (!effectivePlayers.some((p) => p.id === singlePlayerId) && effectivePlayers[0]) {
+      setSinglePlayerId(effectivePlayers[0].id);
+    }
+  }, [rosterPlayers.length]);
 
-  const handleAddRecord = (e: React.FormEvent) => {
+  const toggleKey = (key: StatKey) => {
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const applyTemplate = (keys: StatKey[]) => {
+    setSelectedKeys(keys);
+  };
+
+  // ALL_STAT_FIELDS の定義順に整列した有効カラム
+  const activeFields = ALL_STAT_FIELDS.filter((f) => selectedKeys.includes(f.key));
+
+  const updateGridCell = (playerId: string, key: StatKey, rawVal: number) => {
+    const val = key === "pit_thirds" ? Math.min(2, Math.max(0, rawVal)) : Math.max(0, rawVal);
+    setGridValues((prev) => ({
+      ...prev,
+      [playerId]: {
+        ...(prev[playerId] ?? emptyStatValues()),
+        [key]: val,
+      },
+    }));
+  };
+
+  const updateSingleCell = (key: StatKey, rawVal: number) => {
+    const val = key === "pit_thirds" ? Math.min(2, Math.max(0, rawVal)) : Math.max(0, rawVal);
+    setSingleValues((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const hasNonZero = (v: PlayerStatValues) => ALL_KEYS.some((k) => (v[k] ?? 0) > 0);
+
+  const normalizeValues = (v: PlayerStatValues): PlayerStatValues => {
+    const autoPa = v.pa > 0 ? v.pa : v.ab + v.bb + v.hbp + v.sh + v.sf;
+    return { ...v, pa: autoPa };
+  };
+
+  const handleSaveBulk = (e: React.FormEvent) => {
     e.preventDefault();
     if (!opponentName.trim()) return;
-    const effectivePa = pa > 0 ? pa : ab + bb + hbp + sh + sf;
-    const newRec: SimpleGameRecord = {
-      id: "sim-" + Date.now(),
+    const added: SavedSimpleEntry[] = [];
+    for (const p of effectivePlayers) {
+      const v = gridValues[p.id];
+      if (!v || !hasNonZero(v)) continue;
+      added.push({
+        id: `sim-${Date.now()}-${p.id}`,
+        gameDate,
+        opponentName: opponentName.trim(),
+        kind,
+        tournament: tournament.trim(),
+        playerId: p.id,
+        playerName: p.name,
+        jerseyNumber: p.jerseyNumber,
+        values: normalizeValues(v),
+        source: "SKILLBASE_SIMPLE",
+      });
+    }
+    if (added.length === 0) {
+      alert("少なくとも1人の選手の成績（1以上の数字）を入力してください。");
+      return;
+    }
+    setEntries((prev) => [...added, ...prev]);
+    // 入力セルをクリア
+    const resetGrid: Record<string, PlayerStatValues> = {};
+    for (const p of effectivePlayers) resetGrid[p.id] = emptyStatValues();
+    setGridValues(resetGrid);
+  };
+
+  const handleSaveSingle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!opponentName.trim()) return;
+    if (!hasNonZero(singleValues)) {
+      alert("少なくとも1つの項目に数字を入力してください。");
+      return;
+    }
+    const p = effectivePlayers.find((x) => x.id === singlePlayerId) ?? effectivePlayers[0];
+    const entry: SavedSimpleEntry = {
+      id: `sim-${Date.now()}-${p.id}`,
       gameDate,
       opponentName: opponentName.trim(),
       kind,
       tournament: tournament.trim(),
-      myRuns,
-      oppRuns,
-      pa: effectivePa,
-      ab,
-      hits,
-      doubles,
-      triples,
-      hr,
-      rbi,
-      bb,
-      hbp,
-      so,
-      sh,
-      sf,
-      runs,
-      sb,
-      cs,
-      pitchedInnings,
-      pitchedThirds,
-      pitches,
-      pitHits,
-      pitSo,
-      pitBb,
-      pitRuns,
-      pitEarned,
+      playerId: p.id,
+      playerName: p.name,
+      jerseyNumber: p.jerseyNumber,
+      values: normalizeValues(singleValues),
       source: "SKILLBASE_SIMPLE",
     };
-    setRecords((prev) => [newRec, ...prev]);
-    setOpponentName("");
-    setTournament("");
-    setMyRuns("");
-    setOppRuns("");
-    setPa(0);
-    setAb(0);
-    setHits(0);
-    setDoubles(0);
-    setTriples(0);
-    setHr(0);
-    setRbi(0);
-    setBb(0);
-    setHbp(0);
-    setSo(0);
-    setSh(0);
-    setSf(0);
-    setRuns(0);
-    setSb(0);
-    setCs(0);
-    setPitchedInnings(0);
-    setPitchedThirds(0);
-    setPitches(0);
-    setPitHits(0);
-    setPitSo(0);
-    setPitBb(0);
-    setPitRuns(0);
-    setPitEarned(0);
-    setShowForm(false);
+    setEntries((prev) => [entry, ...prev]);
+    setSingleValues(emptyStatValues());
   };
 
-  const numBox = (label: string, val: number, setVal: (n: number) => void) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>{label}</label>
-      <input
-        type="number"
-        min={0}
-        max={99}
-        className="input"
-        style={{ padding: "6px 8px", fontSize: "14px", textAlign: "center" }}
-        value={val}
-        onChange={(e) => setVal(Math.max(0, Number(e.target.value) || 0))}
-      />
-    </div>
-  );
-
-  const tot = records.reduce(
-    (a, r) => ({
-      g: a.g + 1,
-      ab: a.ab + r.ab,
-      h: a.h + r.hits,
-      hr: a.hr + r.hr,
-      rbi: a.rbi + r.rbi,
-      r: a.r + r.runs,
-      sb: a.sb + r.sb,
-      outs: a.outs + r.pitchedInnings * 3 + r.pitchedThirds,
-      pitSo: a.pitSo + r.pitSo,
-      pitEarned: a.pitEarned + r.pitEarned,
-    }),
-    { g: 0, ab: 0, h: 0, hr: 0, rbi: 0, r: 0, sb: 0, outs: 0, pitSo: 0, pitEarned: 0 }
-  );
+  const calcRowSummary = (v: PlayerStatValues) => {
+    const avg = v.ab > 0 ? (v.hits / v.ab).toFixed(3).replace(/^0/, "") : "-";
+    const singles = Math.max(0, v.hits - v.doubles - v.triples - v.hr);
+    const tb = singles + v.doubles * 2 + v.triples * 3 + v.hr * 4;
+    const obpDen = v.ab + v.bb + v.hbp + v.sf;
+    const obpNum = v.hits + v.bb + v.hbp;
+    const ops =
+      v.ab > 0 && obpDen > 0 ? (obpNum / obpDen + tb / v.ab).toFixed(3).replace(/^0/, "") : "-";
+    const outs = v.pit_innings * 3 + v.pit_thirds;
+    const ip = outs > 0 ? `${Math.floor(outs / 3)}.${outs % 3}` : "-";
+    return { avg, ops, ip };
+  };
 
   return (
-    <div className="card card-glass" style={{ padding: "16px", border: "1px dashed var(--border)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
+    <div className="card card-glass" style={{ padding: "18px", border: "1px dashed var(--border)" }}>
+      {/* ヘッダー＆使う/使わないトグル */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "12px" }}>
         <div>
           <span className="badge" style={{ fontSize: "10px", marginBottom: "4px", display: "inline-block" }}>
             試作プレビュー（SKILLBASE 単独チーム向け）
           </span>
-          <h3 style={{ fontSize: "16px", fontWeight: 800, margin: 0 }}>
-            ✏️ 試合ごとの個人結果・簡易入力{playerName ? `（${playerName}）` : ""}
+          <h3 style={{ fontSize: "17px", fontWeight: 800, margin: 0 }}>
+            ✏️ 試合ごとの個人結果・簡易入力（一括Excel風 ／ 個人入力）
           </h3>
         </div>
 
-        {/* 成績を使う・使わない切り替え */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(0,0,0,0.04)", padding: "4px", borderRadius: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(0,0,0,0.04)", padding: "4px", borderRadius: "8px" }}>
           <button
             type="button"
             onClick={() => setUseStats(true)}
@@ -237,177 +338,521 @@ export default function SimpleStatsPrototypeCard({ playerName }: { playerName?: 
 
       {!useStats ? (
         <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0, lineHeight: 1.7 }}>
-          「成績を使わない」が選ばれています。この設定のチームでは成績欄を非表示にし、コラム・野球ノート・タイムライン・DM のみでシンプルに運用できます。
+          「成績を使わない」が選ばれています。この設定のチームでは成績機能をオフにし、コラム・野球ノート・タイムライン・DM のみで運用できます。
         </p>
       ) : (
         <>
-          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px", lineHeight: 1.6 }}>
-            SCOREBASE を使っていないチームでも、1試合ごとの個人の合計（打撃・走塁・投球）だけを簡単に記録できます（細かさは任意）。
-            ※窓口の分離とチームの共通化が完了後に BASE 共通DB（<code>source: SKILLBASE_SIMPLE</code>）へ保存されます。
+          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "14px", lineHeight: 1.6 }}>
+            使う項目だけをテンプレート＋チェックで選んで、<strong>「📋 Excel風にチーム全員を一括入力」</strong>または<strong>「👤 1人ずつじっくり入力」</strong>ができます。
+            （※窓口の分離・チームの核の共通化後に BASE 共通DB <code>source: SKILLBASE_SIMPLE</code> へ保存されます）
           </p>
 
-          {!showForm ? (
+          {/* 入力モード切り替え ＆ 項目カスタマイズ開閉 */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button
+                type="button"
+                onClick={() => setInputMode("bulk")}
+                style={{
+                  padding: "7px 14px",
+                  fontSize: "12px",
+                  fontWeight: 800,
+                  borderRadius: "8px",
+                  border: inputMode === "bulk" ? "1px solid var(--primary)" : "1px solid var(--border)",
+                  background: inputMode === "bulk" ? "rgba(255, 107, 0, 0.12)" : "transparent",
+                  color: inputMode === "bulk" ? "var(--primary)" : "var(--text-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                📋 チーム一括入力（Excel風）
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode("single")}
+                style={{
+                  padding: "7px 14px",
+                  fontSize: "12px",
+                  fontWeight: 800,
+                  borderRadius: "8px",
+                  border: inputMode === "single" ? "1px solid var(--primary)" : "1px solid var(--border)",
+                  background: inputMode === "single" ? "rgba(255, 107, 0, 0.12)" : "transparent",
+                  color: inputMode === "single" ? "var(--primary)" : "var(--text-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                👤 1人ずつじっくり入力
+              </button>
+            </div>
+
             <button
               type="button"
-              onClick={() => setShowForm(true)}
-              className="btn btn-primary"
-              style={{ fontSize: "13px", padding: "8px 16px", fontWeight: 700 }}
+              onClick={() => setShowColumnPicker((v) => !v)}
+              className="btn"
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 700,
+                background: showColumnPicker ? "var(--primary)" : "rgba(0,0,0,0.04)",
+                color: showColumnPicker ? "#fff" : "var(--text-main)",
+                border: "1px solid var(--border)",
+              }}
             >
-              ＋ 試合の個人結果を入力する（試作）
+              ⚙️ 使う項目を選ぶ（現在 {activeFields.length} 項目） {showColumnPicker ? "▲" : "▼"}
             </button>
-          ) : (
-            <form onSubmit={handleAddRecord} style={{ display: "flex", flexDirection: "column", gap: "14px", background: "rgba(0,0,0,0.02)", padding: "14px", borderRadius: "10px", marginBottom: "14px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
-                <div>
-                  <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>試合日</label>
-                  <input type="date" className="input" value={gameDate} onChange={(e) => setGameDate(e.target.value)} required />
-                </div>
-                <div>
-                  <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>種別</label>
-                  <select className="input" value={kind} onChange={(e) => setKind(e.target.value as "OFFICIAL" | "PRACTICE")}>
-                    <option value="PRACTICE">練習試合</option>
-                    <option value="OFFICIAL">公式戦</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>対戦相手（必須）</label>
-                  <input type="text" className="input" placeholder="例: 青葉スターズ" value={opponentName} onChange={(e) => setOpponentName(e.target.value)} required />
-                </div>
-                <div>
-                  <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>大会名（任意）</label>
-                  <input type="text" className="input" placeholder="例: 春季大会" value={tournament} onChange={(e) => setTournament(e.target.value)} />
+          </div>
+
+          {/* 項目選択パネル（テンプレート＋チェックボックス） */}
+          {showColumnPicker && (
+            <div
+              style={{
+                background: "rgba(0,0,0,0.025)",
+                border: "1px solid var(--border)",
+                borderRadius: "10px",
+                padding: "14px",
+                marginBottom: "16px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 800 }}>📌 テンプレートから一括選択（あとから個別チェックで足し引きOK）</div>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(BASIC_6_KEYS)}
+                    className="btn"
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      border: "1px solid var(--primary)",
+                      background: selectedKeys.length === BASIC_6_KEYS.length ? "var(--primary)" : "transparent",
+                      color: selectedKeys.length === BASIC_6_KEYS.length ? "#fff" : "var(--primary)",
+                    }}
+                  >
+                    ⭐ 基本6項目（打数・安打・本塁打・打点・得点・盗塁）
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(STANDARD_BAT_RUN_KEYS)}
+                    className="btn"
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      border: "1px solid var(--border)",
+                      background: "transparent",
+                    }}
+                  >
+                    ⚾ 打撃・走塁しっかり（17項目）
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(ALL_KEYS)}
+                    className="btn"
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      border: "1px solid var(--border)",
+                      background: "transparent",
+                    }}
+                  >
+                    📊 フル項目（打撃＋走塁＋投手 36項目）
+                  </button>
                 </div>
               </div>
 
-              {/* 基本の打撃・走塁項目（これだけでもOK） */}
-              <div>
-                <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>⚾ 基本成績（わかる項目だけでOK）</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))", gap: "8px" }}>
-                  {numBox("打数", ab, setAb)}
-                  {numBox("安打", hits, setHits)}
-                  {numBox("本塁打", hr, setHr)}
-                  {numBox("打点", rbi, setRbi)}
-                  {numBox("得点", runs, setRuns)}
-                  {numBox("盗塁", sb, setSb)}
-                </div>
-              </div>
-
-              {/* 詳細項目トグル */}
-              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => setShowDetailBat((v) => !v)}
-                  style={{ fontSize: "12px", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: 0 }}
-                >
-                  {showDetailBat ? "▲ 打撃・走塁の細かい項目を閉じる" : "▼ 打撃・走塁の細かい項目も入れる（二塁打・四死球・三振など）"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowPitching((v) => !v)}
-                  style={{ fontSize: "12px", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: 0 }}
-                >
-                  {showPitching ? "▲ 投手成績を閉じる" : "▼ 投手成績も入れる（登板したとき）"}
-                </button>
-              </div>
-
-              {showDetailBat && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))", gap: "8px" }}>
-                  {numBox("打席", pa, setPa)}
-                  {numBox("二塁打", doubles, setDoubles)}
-                  {numBox("三塁打", triples, setTriples)}
-                  {numBox("四球", bb, setBb)}
-                  {numBox("死球", hbp, setHbp)}
-                  {numBox("三振", so, setSo)}
-                  {numBox("犠打", sh, setSh)}
-                  {numBox("犠飛", sf, setSf)}
-                  {numBox("盗塁死", cs, setCs)}
-                </div>
-              )}
-
-              {showPitching && (
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>🎯 投手成績</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(76px, 1fr))", gap: "8px" }}>
-                    {numBox("投球回(整数)", pitchedInnings, setPitchedInnings)}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>端数(回)</label>
-                      <select
-                        className="input"
-                        style={{ padding: "6px 4px", fontSize: "13px" }}
-                        value={pitchedThirds}
-                        onChange={(e) => setPitchedThirds(Number(e.target.value) as 0 | 1 | 2)}
-                      >
-                        <option value={0}>.0</option>
-                        <option value={1}>1/3 (.1)</option>
-                        <option value={2}>2/3 (.2)</option>
-                      </select>
-                    </div>
-                    {numBox("球数", pitches, setPitches)}
-                    {numBox("被安打", pitHits, setPitHits)}
-                    {numBox("奪三振", pitSo, setPitSo)}
-                    {numBox("与四球", pitBb, setPitBb)}
-                    {numBox("失点", pitRuns, setPitRuns)}
-                    {numBox("自責点", pitEarned, setPitEarned)}
+              {(
+                [
+                  ["batting", "⚾ 打撃項目（OPS・長打率・出塁率・三振率・得点圏打率の集計に連動）"],
+                  ["running", "🏃 走塁項目（盗塁成功率・生還率・余分進塁率・タッチアップ成功率に連動）"],
+                  ["pitching", "🎯 投手項目（防御率・球数効率・奪三振率・与四死球率・WHIPに連動）"],
+                ] as [StatCategory, string][]
+              ).map(([cat, title]) => (
+                <div key={cat} style={{ marginTop: "10px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "6px" }}>{title}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {ALL_STAT_FIELDS.filter((f) => f.category === cat).map((f) => {
+                      const checked = selectedKeys.includes(f.key);
+                      return (
+                        <label
+                          key={f.key}
+                          title={f.hint || f.label}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            padding: "4px 9px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: checked ? 700 : 500,
+                            cursor: "pointer",
+                            border: checked ? "1px solid var(--primary)" : "1px solid var(--border)",
+                            background: checked ? "rgba(255, 107, 0, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                            color: checked ? "var(--primary)" : "var(--text-main)",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleKey(f.key)}
+                            style={{ accentColor: "var(--primary)", margin: 0 }}
+                          />
+                          {f.label}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
-              )}
+              ))}
+            </div>
+          )}
 
-              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="btn"
-                  style={{ fontSize: "13px", padding: "6px 14px", background: "transparent", border: "1px solid var(--border)" }}
-                >
-                  キャンセル
+          {/* 共通：試合の基本情報バー */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gap: "10px",
+              marginBottom: "14px",
+              padding: "12px",
+              background: "rgba(0,0,0,0.02)",
+              borderRadius: "10px",
+            }}
+          >
+            <div>
+              <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700 }}>試合日</label>
+              <input type="date" className="input" value={gameDate} onChange={(e) => setGameDate(e.target.value)} required />
+            </div>
+            <div>
+              <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700 }}>試合種別</label>
+              <select className="input" value={kind} onChange={(e) => setKind(e.target.value as "OFFICIAL" | "PRACTICE")}>
+                <option value="PRACTICE">練習試合</option>
+                <option value="OFFICIAL">公式戦</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700 }}>対戦相手（必須）</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="例: 青葉スターズ"
+                value={opponentName}
+                onChange={(e) => setOpponentName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700 }}>大会名（任意）</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="例: 秋季大会"
+                value={tournament}
+                onChange={(e) => setTournament(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* モードA: Excel風チーム一括入力 */}
+          {inputMode === "bulk" ? (
+            <form onSubmit={handleSaveBulk}>
+              <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: "10px", marginBottom: "12px" }}>
+                <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "12px" }}>
+                  <thead>
+                    <tr style={{ background: "rgba(0,0,0,0.04)", color: "var(--text-muted)" }}>
+                      <th
+                        style={{
+                          position: "sticky",
+                          left: 0,
+                          background: "var(--surface, #fff)",
+                          zIndex: 2,
+                          padding: "8px 10px",
+                          textAlign: "left",
+                          whiteSpace: "nowrap",
+                          borderBottom: "1px solid var(--border)",
+                          borderRight: "1px solid var(--border)",
+                        }}
+                      >
+                        選手名
+                      </th>
+                      {activeFields.map((f) => (
+                        <th
+                          key={f.key}
+                          title={f.hint || f.label}
+                          style={{
+                            padding: "8px 6px",
+                            textAlign: "center",
+                            whiteSpace: "nowrap",
+                            minWidth: "58px",
+                            borderBottom: "1px solid var(--border)",
+                          }}
+                        >
+                          {f.shortLabel}
+                        </th>
+                      ))}
+                      <th
+                        style={{
+                          padding: "8px 8px",
+                          textAlign: "right",
+                          whiteSpace: "nowrap",
+                          borderBottom: "1px solid var(--border)",
+                          borderLeft: "1px solid var(--border)",
+                        }}
+                      >
+                        自動計算(打率/OPS)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {effectivePlayers.map((p) => {
+                      const rowVal = gridValues[p.id] ?? emptyStatValues();
+                      const sum = calcRowSummary(rowVal);
+                      const activeRow = hasNonZero(rowVal);
+                      return (
+                        <tr
+                          key={p.id}
+                          style={{
+                            borderTop: "1px solid var(--border)",
+                            background: activeRow ? "rgba(255, 107, 0, 0.04)" : "transparent",
+                          }}
+                        >
+                          <td
+                            style={{
+                              position: "sticky",
+                              left: 0,
+                              background: "var(--surface, #fff)",
+                              zIndex: 1,
+                              padding: "6px 10px",
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                              borderRight: "1px solid var(--border)",
+                            }}
+                          >
+                            {p.jerseyNumber ? (
+                              <span style={{ color: "var(--primary)", marginRight: "6px", fontSize: "11px" }}>
+                                #{p.jerseyNumber}
+                              </span>
+                            ) : null}
+                            {p.name}
+                          </td>
+                          {activeFields.map((f) => (
+                            <td key={f.key} style={{ padding: "4px" }}>
+                              {f.key === "pit_thirds" ? (
+                                <select
+                                  className="input"
+                                  value={rowVal.pit_thirds}
+                                  onChange={(e) => updateGridCell(p.id, "pit_thirds", Number(e.target.value))}
+                                  style={{ padding: "4px 2px", fontSize: "12px", textAlign: "center", height: "30px" }}
+                                >
+                                  <option value={0}>.0</option>
+                                  <option value={1}>.1</option>
+                                  <option value={2}>.2</option>
+                                </select>
+                              ) : (
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={999}
+                                  className="input"
+                                  value={rowVal[f.key] === 0 ? "" : rowVal[f.key]}
+                                  placeholder="0"
+                                  onFocus={(e) => e.currentTarget.select()}
+                                  onChange={(e) =>
+                                    updateGridCell(p.id, f.key, e.target.value === "" ? 0 : Number(e.target.value))
+                                  }
+                                  style={{
+                                    padding: "4px 4px",
+                                    fontSize: "13px",
+                                    textAlign: "center",
+                                    height: "30px",
+                                    width: "56px",
+                                    margin: "0 auto",
+                                    display: "block",
+                                    fontWeight: rowVal[f.key] > 0 ? 800 : 400,
+                                  }}
+                                />
+                              )}
+                            </td>
+                          ))}
+                          <td
+                            style={{
+                              padding: "6px 8px",
+                              textAlign: "right",
+                              whiteSpace: "nowrap",
+                              fontSize: "11px",
+                              color: "var(--text-muted)",
+                              borderLeft: "1px solid var(--border)",
+                            }}
+                          >
+                            打率 <strong style={{ color: "var(--text-main)" }}>{sum.avg}</strong> / OPS{" "}
+                            <strong style={{ color: "var(--text-main)" }}>{sum.ops}</strong>
+                            {sum.ip !== "-" && ` / ${sum.ip}回`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                  💡 Tabキーで右のセルへ連続入力できます（空欄は自動で 0 扱い、入力がある選手だけ保存されます）
+                </span>
+                <button type="submit" className="btn btn-primary" style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 800 }}>
+                  ＋ この試合の成績をまとめて追加（試作）
                 </button>
-                <button type="submit" className="btn btn-primary" style={{ fontSize: "13px", padding: "6px 18px", fontWeight: 700 }}>
-                  追加してプレビュー
+              </div>
+            </form>
+          ) : (
+            /* モードB: 1人ずつじっくり入力 */
+            <form
+              onSubmit={handleSaveSingle}
+              style={{
+                background: "rgba(0,0,0,0.02)",
+                padding: "14px",
+                borderRadius: "10px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700 }}>対象の選手:</label>
+                  <select
+                    className="input"
+                    value={singlePlayerId}
+                    onChange={(e) => setSinglePlayerId(e.target.value)}
+                    style={{ width: "auto", minWidth: "180px" }}
+                  >
+                    {effectivePlayers.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.jerseyNumber ? `[#${p.jerseyNumber}] ` : ""}
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {(() => {
+                  const sum = calcRowSummary(singleValues);
+                  return (
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                      この試合の自動計算: 打率 <strong>{sum.avg}</strong> / OPS <strong>{sum.ops}</strong>
+                      {sum.ip !== "-" && ` / 投球回 ${sum.ip}`}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {(
+                [
+                  ["batting", "⚾ 打撃"],
+                  ["running", "🏃 走塁"],
+                  ["pitching", "🎯 投手"],
+                ] as [StatCategory, string][]
+              ).map(([cat, title]) => {
+                const catFields = activeFields.filter((f) => f.category === cat);
+                if (catFields.length === 0) return null;
+                return (
+                  <div key={cat} style={{ marginBottom: "14px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 800, marginBottom: "6px" }}>{title}</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(92px, 1fr))", gap: "8px" }}>
+                      {catFields.map((f) => (
+                        <div key={f.key} style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                          <label style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }} title={f.hint}>
+                            {f.label}
+                          </label>
+                          {f.key === "pit_thirds" ? (
+                            <select
+                              className="input"
+                              value={singleValues.pit_thirds}
+                              onChange={(e) => updateSingleCell("pit_thirds", Number(e.target.value))}
+                              style={{ padding: "6px 4px", fontSize: "13px", textAlign: "center" }}
+                            >
+                              <option value={0}>.0</option>
+                              <option value={1}>1/3 (.1)</option>
+                              <option value={2}>2/3 (.2)</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="number"
+                              min={0}
+                              max={999}
+                              className="input"
+                              value={singleValues[f.key] === 0 ? "" : singleValues[f.key]}
+                              placeholder="0"
+                              onFocus={(e) => e.currentTarget.select()}
+                              onChange={(e) =>
+                                updateSingleCell(f.key, e.target.value === "" ? 0 : Number(e.target.value))
+                              }
+                              style={{ padding: "6px 8px", fontSize: "14px", textAlign: "center", fontWeight: singleValues[f.key] > 0 ? 800 : 400 }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button type="submit" className="btn btn-primary" style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 800 }}>
+                  ＋ この選手の試合結果を追加（試作）
                 </button>
               </div>
             </form>
           )}
 
-          {records.length > 0 && (
-            <div style={{ marginTop: "14px" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>
-                試作入力プレビュー（{tot.g}試合 / 打率 {tot.ab > 0 ? (tot.h / tot.ab).toFixed(3).replace(/^0/, "") : "-"} / {tot.ab}打数{tot.h}安打 {tot.hr}本塁打 {tot.rbi}打点 {tot.sb}盗塁）
+          {/* 追加された試合ごとの成績プレビュー */}
+          {entries.length > 0 && (
+            <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 800 }}>
+                  📊 簡易入力プレビュー（計 {entries.length} 件 / <code>source: SKILLBASE_SIMPLE</code>）
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEntries([])}
+                  style={{ fontSize: "11px", color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                >
+                  クリア
+                </button>
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "12px" }}>
                   <thead>
-                    <tr style={{ color: "var(--text-muted)", textAlign: "right" }}>
-                      <th style={{ textAlign: "left", padding: "4px 6px" }}>試合</th>
-                      <th style={{ padding: "4px 6px" }}>出どころ</th>
-                      <th style={{ padding: "4px 6px" }}>打数</th>
-                      <th style={{ padding: "4px 6px" }}>安打</th>
-                      <th style={{ padding: "4px 6px" }}>本塁打</th>
-                      <th style={{ padding: "4px 6px" }}>打点</th>
-                      <th style={{ padding: "4px 6px" }}>盗塁</th>
-                      <th style={{ padding: "4px 6px" }}>投球回</th>
+                    <tr style={{ color: "var(--text-muted)", textAlign: "right", borderBottom: "1px solid var(--border)" }}>
+                      <th style={{ textAlign: "left", padding: "5px 6px" }}>試合</th>
+                      <th style={{ textAlign: "left", padding: "5px 6px" }}>選手</th>
+                      {activeFields.map((f) => (
+                        <th key={f.key} style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>
+                          {f.shortLabel}
+                        </th>
+                      ))}
+                      <th style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>打率/OPS</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((r) => (
-                      <tr key={r.id} style={{ borderTop: "1px solid var(--border)", textAlign: "right" }}>
-                        <td style={{ textAlign: "left", padding: "4px 6px" }}>
-                          {r.gameDate} vs {r.opponentName}
-                        </td>
-                        <td style={{ padding: "4px 6px" }}>
-                          <span className="badge" style={{ fontSize: "10px", padding: "1px 6px" }}>
-                            簡易入力 (合計のみ)
-                          </span>
-                        </td>
-                        <td style={{ padding: "4px 6px" }}>{r.ab}</td>
-                        <td style={{ padding: "4px 6px" }}>{r.hits}</td>
-                        <td style={{ padding: "4px 6px" }}>{r.hr}</td>
-                        <td style={{ padding: "4px 6px" }}>{r.rbi}</td>
-                        <td style={{ padding: "4px 6px" }}>{r.sb}</td>
-                        <td style={{ padding: "4px 6px" }}>
-                          {r.pitchedInnings > 0 || r.pitchedThirds > 0 ? `${r.pitchedInnings}.${r.pitchedThirds}` : "-"}
-                        </td>
-                      </tr>
-                    ))}
+                    {entries.map((ent) => {
+                      const sum = calcRowSummary(ent.values);
+                      return (
+                        <tr key={ent.id} style={{ borderTop: "1px solid var(--border)", textAlign: "right" }}>
+                          <td style={{ textAlign: "left", padding: "5px 6px", whiteSpace: "nowrap" }}>
+                            {ent.gameDate} vs {ent.opponentName}
+                          </td>
+                          <td style={{ textAlign: "left", padding: "5px 6px", fontWeight: 700, whiteSpace: "nowrap" }}>
+                            {ent.jerseyNumber ? `#${ent.jerseyNumber} ` : ""}
+                            {ent.playerName}
+                          </td>
+                          {activeFields.map((f) => (
+                            <td key={f.key} style={{ padding: "5px 6px" }}>
+                              {f.key === "pit_thirds" ? `.${ent.values.pit_thirds}` : ent.values[f.key]}
+                            </td>
+                          ))}
+                          <td style={{ padding: "5px 6px", whiteSpace: "nowrap", fontWeight: 700 }}>
+                            {sum.avg} / {sum.ops}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

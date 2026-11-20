@@ -331,7 +331,14 @@ export default function ProfilePage() {
             <BaseStatsCard />
 
             {/* SKILLBASE 単独チーム向け: 「成績を使う・使わない」選択 ＆ 試合ごとの個人結果の簡易入力（画面試作） */}
-            <SimpleStatsPrototypeCard playerName={targetName || profile.user.name} />
+            <SimpleStatsPrototypeCard
+              playerName={targetName || profile.user.name}
+              rosterPlayers={
+                teamRes?.team?.members
+                  ?.filter((u: any) => u.role === "PLAYER")
+                  ?.map((u: any) => ({ id: u.id, name: u.name, jerseyNumber: u.jerseyNumber })) ?? []
+              }
+            />
 
           </div>
         );
