@@ -159,6 +159,7 @@ const fmtDate = (iso: string | null) => {
 export default function BaseStatsCard() {
   const [state, setState] = useState<CardState>({ kind: "loading" });
   const [viewerRole, setViewerRole] = useState<string>("PLAYER");
+  const [canViewTeam, setCanViewTeam] = useState<boolean>(true);
   const [scope, setScope] = useState<Scope | "">("");
   const [kindFilter, setKindFilter] = useState<KindFilter>("");
   const [subTab, setSubTab] = useState<SubTab>("batting");
@@ -185,6 +186,7 @@ export default function BaseStatsCard() {
           });
         }
         if (typeof j.role === "string") setViewerRole(j.role);
+        if (typeof j.canViewTeam === "boolean") setCanViewTeam(j.canViewTeam);
         const resolvedScope: Scope = j.scope ?? (targetScope || "self");
         if (!targetScope) setScope(resolvedScope);
 
@@ -263,11 +265,11 @@ export default function BaseStatsCard() {
     );
   }
 
-  // ログイン中の立場（role）に合わせて意味のある範囲ボタンだけを出す:
-  // ・PLAYER（選手本人）: 「自分の成績」「チーム全体」（お子さんは出さない）
-  // ・PARENT（保護者）: 「お子さんの成績」「チーム全体」（自分は出さない）
-  // ・MANAGER（指導者）: 「チーム全体」「お子さん」（自分は出さない）
-  const scopeOptions: [Scope, string][] =
+  // ログイン中の立場（role）とチームの閲覧権限設定（canViewTeam）に合わせてボタンを出し分ける:
+  // ・PLAYER（選手本人）: 「自分の成績」＋（チーム全体公開が許可されているときだけ）「チーム全体」
+  // ・PARENT（保護者）: 「お子さんの成績」＋（チーム全体公開が許可されているときだけ）「チーム全体」
+  // ・MANAGER（指導者）: 「チーム全体」「お子さんの成績」
+  const rawScopeOptions: [Scope, string][] =
     viewerRole === "PLAYER"
       ? [
           ["self", "自分の成績"],
@@ -282,6 +284,7 @@ export default function BaseStatsCard() {
             ["team", "チーム全体"],
             ["children", "お子さんの成績"],
           ];
+  const scopeOptions = rawScopeOptions.filter(([sc]) => sc !== "team" || canViewTeam);
 
   const scopeBar = (
     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginBottom: "12px" }}>

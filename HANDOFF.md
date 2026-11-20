@@ -13,11 +13,12 @@
 - [`src/app/api/base/player-stats/route.ts`](file:///W:/skillbase/src/app/api/base/player-stats/route.ts) の `PLAYER_CAN_VIEW_OWN` を `true` に変更。
 - 小学生を含む選手本人も、BASE シリーズ準拠で自分の成績を閲覧可能。
 
-### ✅ ② ログイン中の立場（`role`）に応じた成績範囲ボタンの自動出し分け
-- [`src/components/BaseStatsCard.tsx`](file:///W:/skillbase/src/components/BaseStatsCard.tsx) にて、関係ない範囲ボタンを非表示に整理：
-  - **⚾ 選手本人 (`PLAYER`)**: 「自分の成績 (`self`)」「チーム全体 (`team`)」（※「お子さん」は出さない）
-  - **👪 保護者 (`PARENT`)**: 「お子さんの成績 (`children`)」「チーム全体 (`team`)」（※「自分」は出さない）
-  - **👔 指導者 (`MANAGER`)**: 「チーム全体 (`team`)」「お子さんの成績 (`children`)」（※「自分」は出さない）
+### ✅ ② ログイン中の立場（`role`）＆ チームの閲覧権限（`statsVisibility`）に応じた成績範囲ボタンの自動出し分け
+- [`src/components/BaseStatsCard.tsx`](file:///C:/Users/nonba/OneDrive/skillbase/src/components/BaseStatsCard.tsx) および [`src/app/dashboard/settings/page.tsx`](file:///C:/Users/nonba/OneDrive/skillbase/src/app/dashboard/settings/page.tsx) にて、立場とチームの公開設定（`canViewTeam`）に完全連動：
+  - **⚾ 選手本人 (`PLAYER`)**: 「自分の成績 (`self`)」＋（チーム全体公開が許可されているときのみ）「チーム全体 (`team`)」
+  - **👪 保護者 (`PARENT`)**: 「お子さんの成績 (`children`)」＋（チーム全体公開が許可されているときのみ）「チーム全体 (`team`)」
+  - **👔 指導者 (`MANAGER`)**: 「チーム全体 (`team`)」「お子さんの成績 (`children`)」
+  - チーム設定（`/dashboard/settings`）の「👀 成績の公開範囲」で `ALL`（チーム全体も公開）／ `MANAGER_ONLY`（自分・自分の子の成績のみ）／ `SPECIFIC_GROUPS`（特定グループのみ全体公開）をいつでも切り替え可能。
 
 ### ✅ ③ 自前ログインでの新規ユーザー作成の廃止（ログインは BASE アカウントだけ）
 - [`src/app/login/page.tsx`](file:///W:/skillbase/src/app/login/page.tsx) / [`src/app/register/page.tsx`](file:///W:/skillbase/src/app/register/page.tsx) / [`src/app/HomeClient.tsx`](file:///W:/skillbase/src/app/HomeClient.tsx): 自前のID・パスワード入力フォームや独自の新規登録フォームを外し、「🔑 BASE アカウントでログイン」に一本化。

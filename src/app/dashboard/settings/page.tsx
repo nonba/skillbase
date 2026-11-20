@@ -642,81 +642,79 @@ export default function SettingsPage() {
             {/* 本格スコアブック連携(FULL)は開発中のため、完成するまで選択肢として表示しない */}
           </div>
 
-          {scorePlan !== "NONE" && (
-            <div style={{
-              marginTop: "16px",
-              padding: "16px",
-              background: "rgba(0, 0, 0, 0.02)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-md)",
-            }}>
-              <h3 style={{ fontSize: "14px", fontWeight: 700, marginBottom: "12px" }}>👀 成績・ランキングの公開範囲</h3>
-              <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
-                チーム全体成績の閲覧権限を設定します。※マイページの自分の成績は常に見ることができます。
-              </p>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-                  <input
-                    type="radio"
-                    name="statsVisibility"
-                    value="ALL"
-                    checked={statsVisibility === "ALL"}
-                    onChange={(e) => setStatsVisibility(e.target.value)}
-                  />
-                  <span style={{ fontSize: "14px" }}>🟢 全体に公開（すべての選手・保護者が閲覧可能）</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-                  <input
-                    type="radio"
-                    name="statsVisibility"
-                    value="MANAGER_ONLY"
-                    checked={statsVisibility === "MANAGER_ONLY"}
-                    onChange={(e) => setStatsVisibility(e.target.value)}
-                  />
-                  <span style={{ fontSize: "14px" }}>🔴 指導者・管理者のみ（選手・保護者には非公開）</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-                  <input
-                    type="radio"
-                    name="statsVisibility"
-                    value="SPECIFIC_GROUPS"
-                    checked={statsVisibility === "SPECIFIC_GROUPS"}
-                    onChange={(e) => setStatsVisibility(e.target.value)}
-                  />
-                  <span style={{ fontSize: "14px" }}>👥 特定のグループにのみ公開</span>
-                </label>
-              </div>
-
-              {statsVisibility === "SPECIFIC_GROUPS" && (
-                <div style={{ marginTop: "16px", padding: "12px", background: "var(--surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
-                  <p style={{ fontSize: "12px", fontWeight: 600, marginBottom: "8px" }}>公開するグループを選択</p>
-                  {groups.length === 0 ? (
-                    <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>グループが作成されていません。</p>
-                  ) : (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {groups.map((g: any) => (
-                        <label key={g.id} style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", background: "rgba(0, 0, 0, 0.05)", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={statsVisibleGroupIds.includes(g.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setStatsVisibleGroupIds([...statsVisibleGroupIds, g.id]);
-                              } else {
-                                setStatsVisibleGroupIds(statsVisibleGroupIds.filter(id => id !== g.id));
-                              }
-                            }}
-                          />
-                          {g.name}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+          <div style={{
+            marginTop: "16px",
+            padding: "16px",
+            background: "rgba(0, 0, 0, 0.02)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-md)",
+          }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 700, marginBottom: "12px" }}>👀 成績の公開範囲（自分／子の成績のみ か チーム全体も公開か）</h3>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+              選手や保護者が「自分（または自分の子）の成績だけ」見られるか、「チーム全体の成績」まで見られるかを設定します。※自分（または自分の子）の成績はどの設定でも常に見られます。
+            </p>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="statsVisibility"
+                  value="ALL"
+                  checked={statsVisibility === "ALL"}
+                  onChange={(e) => setStatsVisibility(e.target.value)}
+                />
+                <span style={{ fontSize: "14px" }}>🟢 チーム全体も公開（選手・保護者も「自分（の子）」＋「チーム全体」を選べる）</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="statsVisibility"
+                  value="MANAGER_ONLY"
+                  checked={statsVisibility === "MANAGER_ONLY"}
+                  onChange={(e) => setStatsVisibility(e.target.value)}
+                />
+                <span style={{ fontSize: "14px" }}>🔴 自分（自分の子）の成績のみ（チーム全体を見られるのは指導者・管理者だけ）</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="statsVisibility"
+                  value="SPECIFIC_GROUPS"
+                  checked={statsVisibility === "SPECIFIC_GROUPS"}
+                  onChange={(e) => setStatsVisibility(e.target.value)}
+                />
+                <span style={{ fontSize: "14px" }}>👥 特定のグループのみチーム全体も公開</span>
+              </label>
             </div>
-          )}
+
+            {statsVisibility === "SPECIFIC_GROUPS" && (
+              <div style={{ marginTop: "16px", padding: "12px", background: "var(--surface)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+                <p style={{ fontSize: "12px", fontWeight: 600, marginBottom: "8px" }}>公開するグループを選択</p>
+                {groups.length === 0 ? (
+                  <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>グループが作成されていません。</p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {groups.map((g: any) => (
+                      <label key={g.id} style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", background: "rgba(0, 0, 0, 0.05)", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={statsVisibleGroupIds.includes(g.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setStatsVisibleGroupIds([...statsVisibleGroupIds, g.id]);
+                            } else {
+                              setStatsVisibleGroupIds(statsVisibleGroupIds.filter(id => id !== g.id));
+                            }
+                          }}
+                        />
+                        {g.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div style={{
             marginTop: "24px",

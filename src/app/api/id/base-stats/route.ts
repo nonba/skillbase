@@ -19,20 +19,36 @@ export async function GET(req: Request) {
   const viewer =
     (await db.user.findUnique({
       where: { baseUserId: claims.sub },
-      include: { children: { select: { id: true, name: true, jerseyNumber: true } } },
+      include: {
+        children: { select: { id: true, name: true, jerseyNumber: true } },
+        groups: { select: { id: true } },
+        team: { select: { id: true, statsVisibility: true, statsVisibleGroups: { select: { id: true } } } },
+      },
     })) ??
     (await db.user.findUnique({
       where: { id: claims.sub },
-      include: { children: { select: { id: true, name: true, jerseyNumber: true } } },
+      include: {
+        children: { select: { id: true, name: true, jerseyNumber: true } },
+        groups: { select: { id: true } },
+        team: { select: { id: true, statsVisibility: true, statsVisibleGroups: { select: { id: true } } } },
+      },
     }));
 
-  if (!viewer?.teamId) return NextResponse.json({ error: "no-team" }, { status: 403, headers });
+  if (!viewer?.teamId || !viewer.team) return NextResponse.json({ error: "no-team" }, { status: 403, headers });
 
   const url = new URL(req.url);
   const scope = (url.searchParams.get("scope") ?? "team") as "self" | "children" | "team";
-  const canViewTeam = viewer.isOwner || viewer.role === "MANAGER" || viewer.canManageScore;
+  const canScore = viewer.isOwner || viewer.role === "MANAGER" || viewer.canManageScore;
+  const vis = viewer.team.statsVisibility || "ALL";
+  const myGroupIds = viewer.groups.map((g) => g.id);
+  const allowedGroupIds = viewer.team.statsVisibleGroups.map((g) => g.id);
+  const canViewTeam =
+    canScore ||
+    vis === "ALL" ||
+    (vis === "SPECIFIC_GROUPS" && myGroupIds.some((id) => allowedGroupIds.includes(id)));
+
   if (scope === "team" && !canViewTeam) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
+    return NextResponse.json({ error: "forbidden", canViewTeam: false }, { status: 403, headers });
   }
 
   let targetPlayers: { id: string; name: string; jerseyNumber: string | null }[] = [];
@@ -117,5 +133,5 @@ export async function GET(req: Request) {
     balk: 0,
   }));
 
-  return NextResponse.json({ scope, players, batting, running, pitching }, { headers });
+  return NextResponse.json({ scope, canViewTeam, players, batting, running, pitching }, { headers });
 }

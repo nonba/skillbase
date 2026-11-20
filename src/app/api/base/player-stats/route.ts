@@ -150,6 +150,7 @@ export async function GET(req: Request) {
           linked: true,
           source: "base-stats",
           role: user.role,
+          canViewTeam: typeof firstBody.canViewTeam === "boolean" ? firstBody.canViewTeam : activeScope === "team" || user.role === "MANAGER",
           scope: activeScope,
           players: (firstBody.players as unknown[]) ?? [],
           batting: (firstBody.batting as unknown[]) ?? [],
