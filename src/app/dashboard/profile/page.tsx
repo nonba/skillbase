@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import BaseStatsCard from "@/components/BaseStatsCard";
+import SimpleStatsPrototypeCard from "@/components/SimpleStatsPrototypeCard";
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
@@ -326,8 +327,11 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* 選手本人: 成績の元は土台(HOMEBASE)の窓口。SKILLBASE は読んで出すだけ(下の古い表示は、保護者・指導者のため残す) */}
+            {/* 成績の元は BASE 共通の成績窓口（base-stats / base-games）。SKILLBASE は読んで出すだけ */}
             <BaseStatsCard />
+
+            {/* SKILLBASE 単独チーム向け: 「成績を使う・使わない」選択 ＆ 試合ごとの個人結果の簡易入力（画面試作） */}
+            <SimpleStatsPrototypeCard playerName={targetName || profile.user.name} />
 
           </div>
         );

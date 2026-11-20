@@ -134,8 +134,39 @@ export const authOptions: NextAuthOptions = {
         if (!m) throw new Error("BASE_LOGIN_FAILED_NOCOOKIE");
         if (m[1] !== credentials.state || claims.state !== credentials.state) throw new Error("BASE_LOGIN_FAILED_STATE");
         if (!credentials.state.startsWith("s-")) throw new Error("BASE_LOGIN_FAILED_MODE");
-        const user = await db.user.findUnique({ where: { baseUserId: claims.sub } });
-        if (!user) throw new Error("BASE_NOT_LINKED");
+
+        let user = await db.user.findUnique({ where: { baseUserId: claims.sub } });
+        if (!user) {
+          // 同じ ID の行が既にある場合は baseUserId を結びつける
+          const byId = await db.user.findUnique({ where: { id: claims.sub } });
+          if (byId && !byId.baseUserId) {
+            user = await db.user.update({
+              where: { id: byId.id },
+              data: { baseUserId: claims.sub },
+            });
+          }
+        }
+        if (!user) {
+          // SKILLBASE は自前のログインで新規ユーザーを作らず、BASE アカウントでの初回ログイン時にプロフィール行を用意する。
+          // メールやパスワードは SKILLBASE 側に持たない。
+          let validTeamId: string | null = null;
+          if (claims.teamId) {
+            const t = await db.team.findUnique({ where: { id: claims.teamId }, select: { id: true } });
+            if (t) validTeamId = t.id;
+          }
+          user = await db.user.create({
+            data: {
+              id: claims.sub,
+              baseUserId: claims.sub,
+              name: claims.name || "BASE ユーザー",
+              email: `${claims.sub}@base.local`,
+              password: "",
+              role: "MANAGER",
+              teamId: validTeamId,
+              requiresPasswordChange: false,
+            },
+          });
+        }
         if (user.emailVerificationToken) throw new Error(EMAIL_NOT_VERIFIED_ERROR);
         return {
           id: user.id,

@@ -31,14 +31,9 @@ export default function HomeClient() {
               ダッシュボードへ ➔
             </Link>
           ) : (
-            <>
-              <Link href="/login" className="btn btn-secondary" style={{ padding: "9px 18px", fontSize: "13px", fontWeight: 700 }}>
-                ログイン
-              </Link>
-              <Link href="/register" className="btn btn-primary" style={{ padding: "9px 18px", fontSize: "13px", fontWeight: 800 }}>
-                新規登録
-              </Link>
-            </>
+            <Link href="/login" className="btn btn-primary" style={{ padding: "9px 18px", fontSize: "13px", fontWeight: 800 }}>
+              🔑 BASE アカウントでログイン
+            </Link>
           )}
         </div>
       </header>
@@ -93,17 +88,8 @@ export default function HomeClient() {
             className="btn btn-primary"
             style={{ padding: "14px 32px", fontSize: "16px", fontWeight: 800, borderRadius: "30px" }}
           >
-            {session?.user ? "SKILLBASEを開く ➔" : "ログインして始める ➔"}
+            {session?.user ? "SKILLBASEを開く ➔" : "🔑 BASE アカウントで始める ➔"}
           </Link>
-          {!session?.user && (
-            <Link
-              href="/register"
-              className="btn btn-secondary"
-              style={{ padding: "14px 28px", fontSize: "15px", fontWeight: 700, borderRadius: "30px" }}
-            >
-              代表者アカウント登録
-            </Link>
-          )}
         </div>
       </section>
 
