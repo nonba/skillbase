@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import AiStatsAnalysisPanel from "@/components/AiStatsAnalysisPanel";
 
 // SKILLBASE 単独チーム向け「成績を使う・使わない」選択 ＆ 試合ごとの個人結果の簡易入力（画面試作・2026-11-20）。
 // オーナー要望(2026-11-20):
@@ -727,6 +728,66 @@ export default function SimpleStatsPrototypeCard({
                   </tbody>
                 </table>
               </div>
+              <AiStatsAnalysisPanel
+                label="手入力データからAI分析"
+                stats={(() => {
+                  const sum = (k: StatKey) => entries.reduce((acc, e) => acc + (e.values[k] || 0), 0);
+                  const ab = sum("ab");
+                  const bb = sum("bb");
+                  const hbp = sum("hbp");
+                  const sh = sum("sh");
+                  const sf = sum("sf");
+                  const pa = sum("pa") || ab + bb + hbp + sh + sf;
+                  const outs = sum("pit_innings") * 3 + sum("pit_thirds");
+                  return {
+                    source: "SKILLBASE_SIMPLE" as const,
+                    scope: "team" as const,
+                    viewerRole: "MANAGER" as const,
+                    gamesCount: new Set(entries.map((e) => `${e.gameDate}_${e.opponentName}`)).size || 1,
+                    batting: {
+                      pa,
+                      ab,
+                      hits: sum("hits"),
+                      doubles: sum("doubles"),
+                      triples: sum("triples"),
+                      hr: sum("hr"),
+                      rbi: sum("rbi"),
+                      bb,
+                      hbp,
+                      so: sum("so"),
+                      sh,
+                      sf,
+                      risp_ab: sum("risp_ab"),
+                      risp_hits: sum("risp_hits"),
+                    },
+                    running: {
+                      runs: sum("runs"),
+                      sb: sum("sb"),
+                      cs: sum("cs"),
+                      po: sum("po"),
+                      adv_wp: sum("adv_wp"),
+                      xbt_opp: sum("xbt_opp"),
+                      xbt_ok: sum("xbt_ok"),
+                      tag_opp: sum("tag_opp"),
+                      tag_ok: sum("tag_ok"),
+                    },
+                    pitching: {
+                      outs,
+                      pitches: sum("pitches"),
+                      batters: sum("batters"),
+                      hits: sum("pit_hits"),
+                      hr: sum("pit_hr"),
+                      so: sum("pit_so"),
+                      bb: sum("pit_bb"),
+                      hbp: sum("pit_hbp"),
+                      runs: sum("pit_runs"),
+                      earned: sum("pit_earned"),
+                      wp: sum("wp"),
+                      balk: sum("balk"),
+                    },
+                  };
+                })()}
+              />
             </div>
           )}
         </>

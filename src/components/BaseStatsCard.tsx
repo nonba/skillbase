@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { isNativeApp } from "@/lib/platform";
+import AiStatsAnalysisPanel from "@/components/AiStatsAnalysisPanel";
 
 // BASE 共有の成績データベース（base-stats / base-games）を読んで出すカード（2026-11-20 更新）。
 // ・見せる範囲は BASE シリーズ準拠（self＝自分 ／ children＝ひもづけた子ども ／ team＝チーム全体）。
@@ -592,6 +593,64 @@ export default function BaseStatsCard() {
               ) : (
                 <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>投手の記録はまだありません。</p>
               )
+            )}
+
+            {hasAnyStats && (
+              <AiStatsAnalysisPanel
+                stats={{
+                  source: "RECBASE",
+                  scope: scope || "self",
+                  viewerRole: viewerRole === "MANAGER" ? "MANAGER" : viewerRole === "PARENT" ? "PARENT" : "PLAYER",
+                  gamesCount: Math.max(games.length, bat?.games ?? 0, run?.games ?? 0, pit?.games ?? 0),
+                  batting: bat
+                    ? {
+                        pa: bat.pa,
+                        ab: bat.ab,
+                        hits: bat.hits,
+                        doubles: bat.doubles,
+                        triples: bat.triples,
+                        hr: bat.hr,
+                        rbi: bat.rbi,
+                        bb: bat.bb,
+                        hbp: bat.hbp,
+                        so: bat.so,
+                        sh: bat.sh,
+                        sf: bat.sf,
+                        risp_ab: bat.risp_ab,
+                        risp_hits: bat.risp_hits,
+                      }
+                    : undefined,
+                  running: run
+                    ? {
+                        runs: run.runs,
+                        sb: run.sb,
+                        cs: run.cs,
+                        po: run.po,
+                        adv_wp: run.adv_wp,
+                        xbt_opp: run.xbt_opp,
+                        xbt_ok: run.xbt_ok,
+                        tag_opp: run.tag_opp,
+                        tag_ok: run.tag_ok,
+                      }
+                    : undefined,
+                  pitching: pit
+                    ? {
+                        outs: pit.outs,
+                        pitches: pit.pitches,
+                        batters: pit.batters,
+                        hits: pit.hits,
+                        hr: pit.hr,
+                        so: pit.so,
+                        bb: pit.bb,
+                        hbp: pit.hbp,
+                        runs: pit.runs,
+                        earned: pit.earned,
+                        wp: pit.wp,
+                        balk: pit.balk,
+                      }
+                    : undefined,
+                }}
+              />
             )}
           </>
         )}

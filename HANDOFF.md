@@ -8,6 +8,10 @@ HOMEBASE 由来で重複していた機能・ルール外UIを整理し、**タ�
   - 公開チームプロフィール（`/team-profile/[teamId]` および `/dashboard/settings` 内の設定カード）を削除
   - 通話機能（`DashboardLayout` の `GlobalCallListener`、`/dashboard/messages/[conversationId]` の通話/ビデオボタン・`CallOverlay`）を削除
   - 料金・課金プラン・ストレージ追加・会費Pay登録UI（`/dashboard/settings` 内の契約・決済セクション）を撤去（Apple 3.1.1・2026-11-24 ルール準拠、`statsVisibility` 公開範囲設定は維持）
+- **AI 成績分析（2026-11-24 実装）**:
+  - [`src/lib/aiStatsAnalysis.ts`](file:///W:/skillbase/src/lib/aiStatsAnalysis.ts): 名前・チーム名を含まない匿名数値要約サニタイザー＋派生指標計算＋Claude API（`ANTHROPIC_API_KEY`）連携＋キー未設定時のローカル試算フォールバック。
+  - [`src/app/api/ai/analyze-stats/route.ts`](file:///W:/skillbase/src/app/api/ai/analyze-stats/route.ts): `POST /api/ai/analyze-stats`（ログイン＋`aiConsent === true` 必須ガード）。
+  - [`src/components/AiStatsAnalysisPanel.tsx`](file:///W:/skillbase/src/components/AiStatsAnalysisPanel.tsx): 外部AI送信同意UI付き分析パネルを [`BaseStatsCard.tsx`](file:///W:/skillbase/src/components/BaseStatsCard.tsx)（RECBASE連携）と [`SimpleStatsPrototypeCard.tsx`](file:///W:/skillbase/src/components/SimpleStatsPrototypeCard.tsx)（手入力集計）の両方に組み込み済み。
 - **検証**: `npx next typegen && npx tsc --noEmit` 通過（エラー 0件）
 - **今後の重要要件（2026-11-24 オーナー指示・忘れないこと）**:
   1. **OB（卒団生）の BASE シリーズ統一活用**: HOMEBASE 側の学年更新で卒団（`graduated`）したユーザーもそのまま OB として `/ob`（お知らせタイムライン＋メッセージのみ）を利用でき、タイムライン投稿の配信対象先として「OB」を使える仕様を維持・`base-master` にも引き継ぐ。
