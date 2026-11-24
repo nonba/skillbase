@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { ForcePasswordChangeModal } from "@/components/ForcePasswordChangeModal";
-import GlobalCallListener from "@/components/GlobalCallListener";
 import { PushNotificationManager } from "@/components/PushNotificationManager";
 import AppUpdateNotifier from "@/components/AppUpdateNotifier";
 import ClientOnly from "@/components/ClientOnly";
@@ -34,7 +33,6 @@ export default async function DashboardLayout({
       <ForcePasswordChangeModal isOpen={requiresPasswordChange} />
       <ClientOnly>
         <AppUpdateNotifier />
-        <GlobalCallListener />
         <PushNotificationManager headless />
         <BottomNav />
       </ClientOnly>

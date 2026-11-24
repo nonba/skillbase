@@ -8,7 +8,6 @@ import imageCompression from "browser-image-compression";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import StoryCamera from "@/components/StoryCamera";
-import HighlightCarousel from "@/components/HighlightCarousel";
 import MediaViewer from "@/components/MediaViewer";
 import { isNativeApp } from "@/lib/platform";
 import { getCategoryMeta } from "@/lib/columns";
@@ -111,19 +110,6 @@ function DashboardContent() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileAttachmentInputRef = useRef<HTMLInputElement>(null);
-
-  // タイムライン/アルバムのタブ切り替え
-  const [dashTab, setDashTab] = useState<"timeline" | "album">(
-    searchParams.get("tab") === "album" ? "album" : "timeline"
-  );
-  const [albumViewerIndex, setAlbumViewerIndex] = useState<number | null>(null);
-  const [albumAuthorFilter, setAlbumAuthorFilter] = useState<string>("");
-  const [albumGroupFilter, setAlbumGroupFilter] = useState<string>("");
-
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    setDashTab(tab === "album" ? "album" : "timeline");
-  }, [searchParams]);
 
   // アクション関連State
   const [commentInputs, setCommentInputs] = useState<{ [postId: string]: string }>({});
@@ -718,126 +704,17 @@ function DashboardContent() {
     return post.targetGroups?.some((g) => g.id === selectedFilterGroupId) || false;
   });
 
-  const highlightPosts = posts.filter((post: Post) => {
-    if (!post.expiresAt) return false;
-    if (new Date(post.expiresAt) < new Date()) return false;
-    if (!selectedFilterGroupId) return true;
-    return post.targetGroups?.some((g) => g.id === selectedFilterGroupId) || false;
-  });
-
   // 未読コラム（最大2件をタイムライン上部にピックアップ表示）
   const unreadColumns = ((columnsRes?.columns || []) as any[])
     .filter((c) => !c.isRead)
     .slice(0, 2);
 
-  // アルバムタブ用
-  const mediaItems = posts.flatMap((post: Post) => {
-    if (post.expiresAt) return [];
-    if (!post.imageUrl) return [];
-    const urls = post.imageUrl.split(",");
-    return urls.map((url, idx) => ({
-      id: `${post.id}-${idx}`,
-      url,
-      isVideo: post.isVideo && idx === 0,
-      post,
-      index: idx,
-      urls,
-    }));
-  });
-
-  const albumAuthors = (() => {
-    const map = new Map<string, string>();
-    mediaItems.forEach((m) => {
-      if (m.post.author) map.set(m.post.author.id, m.post.author.name);
-    });
-    return Array.from(map, ([id, name]) => ({ id, name }));
-  })();
-  const albumGroupChoices = (() => {
-    const map = new Map<string, string>();
-    mediaItems.forEach((m) =>
-      (m.post.targetGroups || []).forEach((g: any) => map.set(g.id, g.name))
-    );
-    return Array.from(map, ([id, name]) => ({ id, name }));
-  })();
-
-  const albumMediaItems = mediaItems.filter((m) => {
-    if (albumAuthorFilter && m.post.author?.id !== albumAuthorFilter) return false;
-    if (albumGroupFilter && !(m.post.targetGroups || []).some((g: any) => g.id === albumGroupFilter))
-      return false;
-    return true;
-  });
-
-  const albumGroups = (() => {
-    const grpList: { key: string; label: string; items: { item: (typeof mediaItems)[number]; globalIndex: number }[] }[] = [];
-    const indexByKey = new Map<string, number>();
-    albumMediaItems.forEach((item, globalIndex) => {
-      const d = new Date(item.post.createdAt);
-      const key = isNaN(d.getTime()) ? "unknown" : `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-      const label = isNaN(d.getTime()) ? "日付不明" : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-      if (!indexByKey.has(key)) {
-        indexByKey.set(key, grpList.length);
-        grpList.push({ key, label, items: [] });
-      }
-      grpList[indexByKey.get(key)!].items.push({ item, globalIndex });
-    });
-    return grpList;
-  })();
-
-  const scrollToAlbumSection = (key: string) => {
-    const el = document.getElementById(`album-sec-${key}`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   return (
     <main className="container animate-fade-in" style={{ padding: "30px 24px" }}>
       <div style={{ maxWidth: "800px", margin: "0 auto" }}>
         <section className="feed-center">
-          {/* タイムライン / アルバム タブ切り替え */}
-          <div
-            style={{
-              display: "flex",
-              gap: "4px",
-              marginBottom: "20px",
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-md)",
-              padding: "4px",
-            }}
-          >
-            <button
-              onClick={() => setDashTab("timeline")}
-              className="btn"
-              style={{
-                flex: 1,
-                padding: "10px 8px",
-                fontSize: "14px",
-                fontWeight: 700,
-                background: dashTab === "timeline" ? "var(--primary)" : "transparent",
-                color: dashTab === "timeline" ? "#fff" : "var(--text-muted)",
-                borderRadius: "8px",
-              }}
-            >
-              💬 タイムライン
-            </button>
-            <button
-              onClick={() => setDashTab("album")}
-              className="btn"
-              style={{
-                flex: 1,
-                padding: "10px 8px",
-                fontSize: "14px",
-                fontWeight: 700,
-                background: dashTab === "album" ? "var(--primary)" : "transparent",
-                color: dashTab === "album" ? "#fff" : "var(--text-muted)",
-                borderRadius: "8px",
-              }}
-            >
-              📸 アルバム
-            </button>
-          </div>
-
           {/* 📚 未読コラム・動画のピックアップバナー */}
-          {dashTab === "timeline" && unreadColumns.length > 0 && (
+          {unreadColumns.length > 0 && (
             <div style={{ marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <h3 style={{ fontSize: "13px", fontWeight: 800, color: "var(--primary)", letterSpacing: "0.5px" }}>
@@ -890,8 +767,6 @@ function DashboardContent() {
             </div>
           )}
 
-          {dashTab === "timeline" && (
-            <>
               {/* グループ切り替えフィルター */}
               {groups.length > 0 &&
                 (() => {
@@ -1221,15 +1096,6 @@ function DashboardContent() {
 
               {showCamera && <StoryCamera onClose={() => setShowCamera(false)} onRecordComplete={handleDirectUpload} />}
 
-              {highlightPosts && highlightPosts.length > 0 && (
-                <HighlightCarousel
-                  highlights={highlightPosts}
-                  currentUserId={session?.user?.id || ""}
-                  isPostAdmin={isPostAdmin}
-                  onDeleteHighlight={handleDeletePost}
-                />
-              )}
-
               <div>
                 <h3 style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "1px", marginBottom: "12px" }}>
                   💬 {selectedFilterGroupId ? `タイムライン (${groups.find((g: any) => g.id === selectedFilterGroupId)?.name})` : "タイムライン"}
@@ -1262,91 +1128,6 @@ function DashboardContent() {
                   </div>
                 )}
               </div>
-            </>
-          )}
-
-          {/* アルバムビュー */}
-          {dashTab === "album" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-                <h3 style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "1px", margin: 0 }}>
-                  📸 チームアルバム
-                </h3>
-                <Link href="/dashboard/album/highlights" className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }}>
-                  🔴 ハイライト履歴
-                </Link>
-              </div>
-
-              {mediaItems.length === 0 ? (
-                <div className="card" style={{ padding: "60px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: "14px" }}>
-                  まだ写真・動画の投稿がありません。
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "14px", alignItems: "center" }}>
-                    <select value={albumAuthorFilter} onChange={(e) => setAlbumAuthorFilter(e.target.value)} className="form-control" style={{ width: "auto", padding: "6px 10px", fontSize: "13px" }}>
-                      <option value="">👤 投稿者：すべて</option>
-                      {albumAuthors.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                        </option>
-                      ))}
-                    </select>
-                    {albumGroupChoices.length > 0 && (
-                      <select value={albumGroupFilter} onChange={(e) => setAlbumGroupFilter(e.target.value)} className="form-control" style={{ width: "auto", padding: "6px 10px", fontSize: "13px" }}>
-                        <option value="">📢 グループ：すべて</option>
-                        {albumGroupChoices.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
-                  {albumGroups.map((g) => (
-                    <div key={g.key} id={`album-sec-${g.key}`} style={{ marginBottom: "22px" }}>
-                      <div style={{ padding: "6px 0", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid var(--border)" }}>
-                        <span style={{ fontSize: "13px", fontWeight: 800 }}>{g.label}</span>
-                        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{g.items.length}枚</span>
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: "6px" }}>
-                        {g.items.map(({ item, globalIndex }) => (
-                          <div
-                            key={item.id}
-                            onClick={() => setAlbumViewerIndex(globalIndex)}
-                            style={{ aspectRatio: "1 / 1", overflow: "hidden", borderRadius: "8px", background: "#000", cursor: "pointer", position: "relative", border: "1px solid var(--border)" }}
-                          >
-                            {item.isVideo ? (
-                              <video src={`${item.url}#t=0.1`} preload="metadata" muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            ) : (
-                              <img src={item.url || ""} alt="投稿画像" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {albumViewerIndex !== null && albumMediaItems.length > 0 && (
-                <MediaViewer
-                  items={albumMediaItems.map((item) => ({
-                    id: item.id,
-                    url: item.url,
-                    thumbnailUrl: item.index === 0 ? item.post.thumbnailUrl : null,
-                    isVideo: item.isVideo,
-                    authorName: item.post.author?.name,
-                    createdAt: item.post.createdAt,
-                    caption: item.post.content,
-                  }))}
-                  startIndex={albumViewerIndex}
-                  onClose={() => setAlbumViewerIndex(null)}
-                />
-              )}
-            </div>
-          )}
         </section>
       </div>
     </main>

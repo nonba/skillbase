@@ -6,7 +6,6 @@ import { useRouter, useParams } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { getPusherClient } from "@/lib/pusher";
-import CallOverlay from "@/components/CallOverlay";
 
 interface Message {
   id: string;
@@ -40,10 +39,6 @@ export default function ConversationPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 通話ステート (発信専用)
-  const [activeCall, setActiveCall] = useState(false);
-  const [callType, setCallType] = useState<"audio" | "video">("audio");
-
   const { data: convData, mutate } = useSWR<ConversationData>(
     conversationId ? `/api/messages/${conversationId}` : null,
     fetcher,
@@ -53,11 +48,6 @@ export default function ConversationPage() {
   const messages = convData?.messages;
   const participants = convData?.participants;
   const opponent = participants?.find((p) => p.id !== session?.user?.id);
-
-  const handleInitiateCall = (type: "audio" | "video") => {
-    setCallType(type);
-    setActiveCall(true);
-  };
 
   // メッセージが更新されたら一番下にスクロール
   useEffect(() => {
@@ -194,49 +184,6 @@ export default function ConversationPage() {
             {opponent ? `${opponent.role === "MANAGER" ? "指導者" : opponent.role === "PARENT" ? "保護者" : "選手"}` : "メッセージ"}
           </div>
         </div>
-
-        {/* 通話開始ボタン */}
-        {opponent && (
-          <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-            <button
-              onClick={() => handleInitiateCall("audio")}
-              style={{
-                background: "rgba(255, 71, 87, 0.1)",
-                color: "var(--primary)",
-                border: "1px solid var(--primary)",
-                borderRadius: "20px",
-                padding: "6px 12px",
-                fontSize: "12px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px"
-              }}
-            >
-              📞 通話
-            </button>
-            <button
-              onClick={() => handleInitiateCall("video")}
-              style={{
-                background: "var(--primary)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "20px",
-                padding: "6px 12px",
-                fontSize: "12px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                boxShadow: "0 4px 10px rgba(255, 71, 87, 0.2)"
-              }}
-            >
-              📹 ビデオ
-            </button>
-          </div>
-        )}
       </div>
 
       {/* メッセージエリア */}
@@ -454,22 +401,6 @@ export default function ConversationPage() {
           {sending ? "…" : "➤"}
         </button>
       </div>
-
-      {/* 通話機能のオーバーレイ画面 */}
-      {activeCall && opponent && session?.user && (
-        <CallOverlay
-          conversationId={conversationId}
-          currentUserId={session.user.id}
-          currentUserName={session.user.name || "自分"}
-          opponentId={opponent.id}
-          opponentName={opponent.name}
-          incomingSignal={null}
-          initialCallType={callType}
-          onClose={() => {
-            setActiveCall(false);
-          }}
-        />
-      )}
     </div>
   );
 }

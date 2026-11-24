@@ -1,3 +1,17 @@
+# ⚡ SKILLBASE 引き継ぎ・進行状況（2026-11-24 更新 / PC03）
+
+## 0. 本日（2026-11-24）完了した整理・改修内容
+HOMEBASE 由来で重複していた機能・ルール外UIを整理し、**タイムライン・コラム・野球ノート・メッセージ・個人成績（＋簡易入力）・OB（`/ob`：お知らせ＋メッセージのみ）** に特化した構成へスリム化しました：
+- **削除・整理した画面・導線**:
+  - アルバム・ハイライト（`/dashboard/album/highlights`、`/dashboard` のアルバムタブ・`HighlightCarousel`）を削除
+  - 家族用ページ・印刷（`/family/[token]/*`）を削除
+  - 公開チームプロフィール（`/team-profile/[teamId]` および `/dashboard/settings` 内の設定カード）を削除
+  - 通話機能（`DashboardLayout` の `GlobalCallListener`、`/dashboard/messages/[conversationId]` の通話/ビデオボタン・`CallOverlay`）を削除
+  - 料金・課金プラン・ストレージ追加・会費Pay登録UI（`/dashboard/settings` 内の契約・決済セクション）を撤去（Apple 3.1.1・2026-11-24 ルール準拠、`statsVisibility` 公開範囲設定は維持）
+- **検証**: `npx next typegen && npx tsc --noEmit` 通過（エラー 0件）
+
+---
+
 # ⚡ SKILLBASE 引き継ぎ・進行状況（2026-11-20 19:23 更新 / nonbaPC 引き継ぎ）
 
 ## 1. 現在のブランチ・運用状態
