@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getEnv } from "@/lib/env";
 import { analyzeStatsWithAi, sanitizeAnonymizedStats } from "@/lib/aiStatsAnalysis";
+import { checkAndConsumeAiRateLimit } from "@/lib/aiRateLimit";
 
 export async function POST(req: Request) {
   try {
@@ -19,6 +20,20 @@ export async function POST(req: Request) {
           message: "AI分析を行うには、外部AIへの匿名数値データ送信への同意が必要です。",
         },
         { status: 403 }
+      );
+    }
+
+    const teamId = (session.user as { teamId?: string | null }).teamId ?? null;
+    const rate = checkAndConsumeAiRateLimit(session.user.id, teamId);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: rate.reason || "rate-limited", message: rate.message },
+        {
+          status: 429,
+          headers: rate.retryAfterSeconds
+            ? { "Retry-After": String(rate.retryAfterSeconds) }
+            : undefined,
+        }
       );
     }
 

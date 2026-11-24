@@ -5,6 +5,7 @@ import {
   computeDerivedMetrics,
   sanitizeAnonymizedStats,
 } from "./aiStatsAnalysis";
+import { checkAndConsumeAiRateLimit, resetAiRateLimitForTest } from "./aiRateLimit";
 
 test("sanitizeAnonymizedStats strips personal fields and clamps negatives", () => {
   const cleaned = sanitizeAnonymizedStats({
@@ -56,4 +57,21 @@ test("analyzeStatsWithAi falls back to local analysis when API key is missing", 
   assert.ok(result.strengths.length >= 1);
   assert.ok(result.challenges.length >= 1);
   assert.ok(result.nextPractice.length >= 1);
+});
+
+test("checkAndConsumeAiRateLimit isolates teams and enforces cooldown", () => {
+  resetAiRateLimitForTest();
+  const t0 = Date.UTC(2026, 10, 24, 10, 0, 0);
+
+  const first = checkAndConsumeAiRateLimit("user-1", "team-A", t0);
+  assert.equal(first.allowed, true);
+
+  // 2秒後の連打はクールダウンで弾かれる
+  const rapid = checkAndConsumeAiRateLimit("user-1", "team-A", t0 + 2000);
+  assert.equal(rapid.allowed, false);
+  assert.equal(rapid.reason, "cooldown");
+
+  // 別チーム・別ユーザーは一切影響を受けない
+  const otherTeam = checkAndConsumeAiRateLimit("user-2", "team-B", t0 + 2000);
+  assert.equal(otherTeam.allowed, true);
 });
