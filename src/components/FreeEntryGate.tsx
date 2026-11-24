@@ -11,7 +11,6 @@ const FULL_FEATURE_PATHS: { prefix: string; name: string }[] = [
   { prefix: "/dashboard/messages", name: "メッセージ" },
   { prefix: "/dashboard/roster", name: "チーム名簿" },
   { prefix: "/dashboard/stats", name: "成績管理" },
-  { prefix: "/dashboard/album", name: "アルバム" },
 ];
 
 export default function FreeEntryGate({ tier, children }: { tier: string | null; children: React.ReactNode }) {

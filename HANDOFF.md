@@ -12,7 +12,8 @@ HOMEBASE 由来で重複していた機能・ルール外UIを整理し、**タ�
   - [`src/lib/aiStatsAnalysis.ts`](file:///W:/skillbase/src/lib/aiStatsAnalysis.ts): 名前・チーム名を含まない匿名数値要約サニタイザー＋派生指標計算＋Claude API（`ANTHROPIC_API_KEY`）連携＋キー未設定時のローカル試算フォールバック。
   - [`src/app/api/ai/analyze-stats/route.ts`](file:///W:/skillbase/src/app/api/ai/analyze-stats/route.ts): `POST /api/ai/analyze-stats`（ログイン＋`aiConsent === true` 必須ガード）。
   - [`src/components/AiStatsAnalysisPanel.tsx`](file:///W:/skillbase/src/components/AiStatsAnalysisPanel.tsx): 外部AI送信同意UI付き分析パネルを [`BaseStatsCard.tsx`](file:///W:/skillbase/src/components/BaseStatsCard.tsx)（RECBASE連携）と [`SimpleStatsPrototypeCard.tsx`](file:///W:/skillbase/src/components/SimpleStatsPrototypeCard.tsx)（手入力集計）の両方に組み込み済み。
-- **検証**: `npx next typegen && npx tsc --noEmit` 通過（エラー 0件）
+- **検証**: `npx tsx --test src/lib/aiStatsAnalysis.test.ts`（4/4 通過）、`npx next typegen && npx tsc --noEmit` 通過、`npm run build`（Next.js 16.2.1 / 51/51 ページ生成）成功。
+- **その他整理**: `FreeEntryGate.tsx` の `/dashboard/album` 定義を削除、OB タイムライン配信（`api/posts/route.ts` の `isObGroup` ＆ `graduated` 判定）が正常に維持されていることを確認済み。
 - **今後の重要要件（2026-11-24 オーナー指示・忘れないこと）**:
   1. **OB（卒団生）の BASE シリーズ統一活用**: HOMEBASE 側の学年更新で卒団（`graduated`）したユーザーもそのまま OB として `/ob`（お知らせタイムライン＋メッセージのみ）を利用でき、タイムライン投稿の配信対象先として「OB」を使える仕様を維持・`base-master` にも引き継ぐ。
   2. **AI 成績分析（RECBASE 連携 ＋ 手入力集計の両対応）**: `RECBASE` 連携時（打席詳細あり）の詳細 AI 分析だけでなく、**RECBASE 未連携でも手入力（簡易集計）が入っている場合も数値要約から AI 分析できる機能** を必ず実装する（名前なし・数値のみ送信＋同意必須、詳細は [`docs/AI_PA_WINDOW_DESIGN.md`](file:///W:/skillbase/docs/AI_PA_WINDOW_DESIGN.md)）。
