@@ -9,6 +9,9 @@ HOMEBASE 由来で重複していた機能・ルール外UIを整理し、**タ�
   - 通話機能（`DashboardLayout` の `GlobalCallListener`、`/dashboard/messages/[conversationId]` の通話/ビデオボタン・`CallOverlay`）を削除
   - 料金・課金プラン・ストレージ追加・会費Pay登録UI（`/dashboard/settings` 内の契約・決済セクション）を撤去（Apple 3.1.1・2026-11-24 ルール準拠、`statsVisibility` 公開範囲設定は維持）
 - **検証**: `npx next typegen && npx tsc --noEmit` 通過（エラー 0件）
+- **今後の重要要件（2026-11-24 オーナー指示・忘れないこと）**:
+  1. **OB（卒団生）の BASE シリーズ統一活用**: HOMEBASE 側の学年更新で卒団（`graduated`）したユーザーもそのまま OB として `/ob`（お知らせタイムライン＋メッセージのみ）を利用でき、タイムライン投稿の配信対象先として「OB」を使える仕様を維持・`base-master` にも引き継ぐ。
+  2. **AI 成績分析（RECBASE 連携 ＋ 手入力集計の両対応）**: `RECBASE` 連携時（打席詳細あり）の詳細 AI 分析だけでなく、**RECBASE 未連携でも手入力（簡易集計）が入っている場合も数値要約から AI 分析できる機能** を必ず実装する（名前なし・数値のみ送信＋同意必須、詳細は [`docs/AI_PA_WINDOW_DESIGN.md`](file:///W:/skillbase/docs/AI_PA_WINDOW_DESIGN.md)）。
 
 ---
 
